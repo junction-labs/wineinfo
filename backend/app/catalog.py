@@ -41,7 +41,7 @@ class CatalogService(ABC):
         pass
 
 
-CATALOG_FILE = "gen_data/catalog_data.csv"
+CATALOG_FILE = "backend/gen_data/catalog_data.csv"
 
 
 class CatalogServiceImpl(CatalogService):

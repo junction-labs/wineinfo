@@ -16,13 +16,13 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--src",
-        default="src_data/winemag-data-130k-v2.csv",
+        default="backend/src_data/winemag-data-110k-v2.csv",
         help="The destination directory for the generated data",
     )
     args = parser.parse_args()
 
-    if not os.path.exists("gen_data"):
-        os.mkdir("gen_data")
+    if not os.path.exists("backend/gen_data"):
+        os.mkdir("backend/gen_data")
 
     catalog_service = CatalogServiceImpl()
     recommendation_service = RecommendationServiceImpl(RECS_DIR, True)

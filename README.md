@@ -11,10 +11,10 @@ pip install -r backend/requirements.txt
 python3 backend/app/build_data.py
 
 docker build --tag wineinfo-frontend --file scripts/Dockerfile-frontend --load frontend
-docker build --tag wineinfo-backend --file scripts/Dockerfile-backend --load backend/app
-docker build --tag wineinfo-catalog --file scripts/Dockerfile-catalog --load backend/app
-docker build --tag wineinfo-search --file scripts/Dockerfile-search --load backend/app
-docker build --tag wineinfo-recs --file scripts/Dockerfile-recs --load backend/app
+docker build --tag wineinfo-backend --file scripts/Dockerfile-backend --load backend
+docker build --tag wineinfo-catalog --file scripts/Dockerfile-catalog --load backend
+docker build --tag wineinfo-search --file scripts/Dockerfile-search --load backend
+docker build --tag wineinfo-recs --file scripts/Dockerfile-recs --load backend
 kubectl apply -f scripts/latest-ezbake.yml
 kubectl apply -f scripts/k8s_frontend.yml
 kubectl apply -f scripts/k8s_backend.yml
@@ -41,7 +41,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 python3 backend/app/build_data.py
-
 fastapi dev backend/app/backend.py
 ```
 

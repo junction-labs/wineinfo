@@ -18,7 +18,7 @@ class SearchService(ABC):
     def search(self, request: SearchRequest) -> PaginatedList[int]:
         pass
 
-SEARCH_DIR = "gen_data/search_data"
+SEARCH_DIR = "backend/gen_data/search_data"
 
 class SearchServiceImpl(SearchService):
     def __init__(self, path: str = "", reset: bool = False):

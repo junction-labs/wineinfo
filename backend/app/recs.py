@@ -19,7 +19,7 @@ class RecommendationService(ABC):
     def get_recommendations(self, request: RecommendationRequest) -> List[int]:
         pass
 
-RECS_DIR = "gen_data/recs_data"
+RECS_DIR = "backend/gen_data/recs_data"
 
 class RecommendationServiceImpl(RecommendationService):
     def __init__(self, path: str = "", reset: bool = False):
