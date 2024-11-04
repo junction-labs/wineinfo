@@ -1,0 +1,6 @@
+fastapi[standard]
+pydantic-settings
+uvicorn
+whoosh
+chromadb
+https://github.com/junction-labs/junction-client/releases/download/tip-python/junction-0.1.0-cp38-abi3-macosx_11_0_arm64.whl
