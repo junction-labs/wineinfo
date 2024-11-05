@@ -42,13 +42,27 @@ if __name__ == '__main__':
             "vhost": catalog_vhost,
             "rules": [
                 {
-                    "matches": [{"path": {"value": RemoteCatalogService.GET_WINES}}],
+                    "matches": [
+                        {"path": {"value": RemoteCatalogService.GET_WINES}},
+                        {"header": {"name": "x-test", "value": "true"}}
+                    ],
+                    "timeouts": {"backend_request": 0.05},
                     "backends": [
                         { **catalog_vhost, "weight": 50, },
                         { **test_catalog_vhost, "weight": 50, },
                     ],
                 },
                 {
+                    "matches": [{"path": {"value": RemoteCatalogService.GET_WINES}}],
+                    "timeouts": {"backend_request": 0.05},
+                    "backends": [ catalog_vhost ]
+                },               
+                {
+                    "matches": [{"path": {"value": RemoteCatalogService.GET_ALL_WINES_PAGINATED}}],
+                    "timeouts": {"backend_request": 0.2},
+                    "retry": junction.config.RouteRetry(
+                        codes=[502], attempts=2, backoff=0.001
+                    ),                    
                     "backends": [ catalog_vhost ]
                 },
             ],
