@@ -12,7 +12,6 @@ __pycache__/
 .Python
 .venv/
 env/
-bin/
 build/
 develop-eggs/
 dist/
@@ -72,4 +71,4 @@ docs/_build/
 .python-version
 
 # generated data
-gen_data/
+data/gen

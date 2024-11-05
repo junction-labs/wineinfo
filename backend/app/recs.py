@@ -1,28 +1,16 @@
-from abc import ABC, abstractmethod
 import os
 import shutil
 import chromadb
-from typing import List, Optional
-from fastapi import Query
-from pydantic import BaseModel, Field
-from catalog import Wine
-
-class RecommendationRequest(BaseModel):
-    query: str
-    limit: int = 20
-    wine_ids: Optional[List[int]] = Field(Query([]))
-    exclude_ids: Optional[List[int]] = Field(Query([]))
+from typing import List
+from .service_api import RecommendationRequest, RecommendationService
+from .catalog import Wine
 
 
-class RecommendationService(ABC):
-    @abstractmethod
-    def get_recommendations(self, request: RecommendationRequest) -> List[int]:
-        pass
-
-RECS_DIR = "backend/gen_data/recs_data"
 
 class RecommendationServiceImpl(RecommendationService):
-    def __init__(self, path: str = "", reset: bool = False):
+    RECS_DIR = "backend/data/gen/recs_data"
+
+    def __init__(self, reset: bool = False, path: str = RECS_DIR):
         if path:
             if reset and os.path.exists(path):
                 shutil.rmtree(path)

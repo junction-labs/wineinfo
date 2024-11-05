@@ -1,51 +1,12 @@
-from abc import ABC, abstractmethod
 from fastapi import HTTPException
 from typing import List
-from pydantic import BaseModel
 import csv
-
-class Wine(BaseModel):
-    id: int | None
-    title: str
-    country: str
-    description: str
-    designation: str
-    points: str
-    price: str
-    province: str
-    region_1: str
-    region_2: str
-    taster_name: str
-    taster_twitter_handle: str
-    variety: str
-    winery: str
-
-class PaginatedList[T](BaseModel):
-    items: List[T]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-    class Config:
-        generic_types_only = True
-
-
-class CatalogService(ABC):
-    @abstractmethod
-    def get_wine(self, ids: List[int]) -> List[Wine]:
-        pass
-
-    @abstractmethod
-    def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
-        pass
-
-
-CATALOG_FILE = "backend/gen_data/catalog_data.csv"
-
+from .service_api import CatalogService, PaginatedList, Wine
 
 class CatalogServiceImpl(CatalogService):
-    def __init__(self, path: str = ""):
+    CATALOG_FILE = "backend/data/gen/catalog_data.csv"
+
+    def __init__(self, path: str = CATALOG_FILE):
         self.data: List[Wine] = []
         if path:
             with open(path, 'r', encoding='utf-8') as file:
@@ -81,7 +42,6 @@ class CatalogServiceImpl(CatalogService):
             page=page, 
             page_size=page_size, 
             total_pages=(len(self.data) + page_size - 1) // page_size)
-
 
     def add_wine(self, wine: Wine) -> Wine:
         wine.id = len(self.data)

@@ -1,27 +1,18 @@
 from abc import ABC, abstractmethod
 import os
 import shutil
-from pydantic import BaseModel
 from whoosh.filedb.filestore import RamStorage, FileStorage
 from whoosh.fields import Schema, TEXT, ID, NUMERIC
 from whoosh.qparser import MultifieldParser
-from catalog import PaginatedList, Wine
-
-class SearchRequest(BaseModel):
-    query: str
-    page: int = 1
-    page_size: int = 20
+from .service_api import SearchRequest, SearchService
+from .catalog import PaginatedList, Wine
 
 
-class SearchService(ABC):
-    @abstractmethod
-    def search(self, request: SearchRequest) -> PaginatedList[int]:
-        pass
-
-SEARCH_DIR = "backend/gen_data/search_data"
 
 class SearchServiceImpl(SearchService):
-    def __init__(self, path: str = "", reset: bool = False):
+    SEARCH_DIR = "backend/data/gen/search_data"
+
+    def __init__(self, reset: bool = False, path: str = SEARCH_DIR):
         schema = Schema(
             id=ID(stored=True),
             title=TEXT(stored=True),

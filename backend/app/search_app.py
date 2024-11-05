@@ -1,12 +1,12 @@
 from typing import Annotated
 from fastapi import FastAPI, Query
-
-from catalog import PaginatedList
-from search import SEARCH_DIR, SearchRequest, SearchServiceImpl
+from .service_api import RemoteSearchService
+from .catalog import PaginatedList
+from .search import SearchRequest, SearchServiceImpl
 
 app = FastAPI()
-service = SearchServiceImpl(SEARCH_DIR)
+service = SearchServiceImpl()
 
-@app.get("/search/")
+@app.get(RemoteSearchService.SEARCH)
 def search(request: Annotated[SearchRequest, Query()]) -> PaginatedList[int]:
     return service.search(request)

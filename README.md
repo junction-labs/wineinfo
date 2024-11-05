@@ -8,7 +8,7 @@ A webapp with React frontend and FastAPI backend services to demonstrate Junctio
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
-python3 backend/app/build_data.py
+python3 backend/bin/build_data.py
 
 docker build --tag wineinfo-frontend --file scripts/Dockerfile-frontend --load frontend
 docker build --tag wineinfo-backend --file scripts/Dockerfile-backend --load backend
@@ -40,8 +40,8 @@ Backend:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
-python3 backend/app/build_data.py
-fastapi dev backend/app/backend.py
+python3 backend/bin/build_data.py
+fastapi dev backend/app/backend_app.py --port 8000
 ```
 
 Recs:

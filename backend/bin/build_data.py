@@ -1,10 +1,12 @@
-import os
-from catalog import Wine
-from catalog import CATALOG_FILE, CatalogServiceImpl
-from recs import RECS_DIR, RecommendationServiceImpl
-from search import SEARCH_DIR, SearchServiceImpl 
+import os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)))
+from backend.app.service_api import Wine
+from backend.app.catalog import CatalogServiceImpl
+from backend.app.recs import RecommendationServiceImpl
+from backend.app.search import SearchServiceImpl 
 import csv
 import argparse
+from pathlib import Path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Generate wineinfo data")
@@ -16,20 +18,20 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--src",
-        default="backend/src_data/winemag-data-110k-v2.csv",
+        default="backend/data/src/winemag-data-110k-v2.csv",
         help="The destination directory for the generated data",
     )
     args = parser.parse_args()
 
-    if not os.path.exists("backend/gen_data"):
-        os.mkdir("backend/gen_data")
+    if not os.path.exists(Path(CatalogServiceImpl.CATALOG_FILE).parent):
+        os.mkdir(Path(CatalogServiceImpl.CATALOG_FILE).parent)
 
-    catalog_service = CatalogServiceImpl()
-    recommendation_service = RecommendationServiceImpl(RECS_DIR, True)
-    search_service = SearchServiceImpl(SEARCH_DIR, True)
+    catalog_service = CatalogServiceImpl("")#empty string so it doesn't load from file
+    recommendation_service = RecommendationServiceImpl(True)
+    search_service = SearchServiceImpl(True)
     search_service.open_index()
     recommendation_service.open_index()
-    with open(CATALOG_FILE, 'w', encoding='utf-8') as catalog_file:
+    with open(CatalogServiceImpl.CATALOG_FILE, 'w', encoding='utf-8') as catalog_file:
         csv_writer = csv.DictWriter(catalog_file, Wine.model_fields)
         csv_writer.writeheader()
         with open(args.src, 'r', encoding='utf-8') as file:
