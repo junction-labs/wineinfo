@@ -6,7 +6,13 @@ from typing import Annotated, List
 from .catalog import PaginatedList, Wine
 from .recs import RecommendationRequest
 from .search import SearchRequest
-from .service_api import HttpCaller, RemoteCatalogService, RemoteSearchService, RemoteRecommendationService, ServiceSettings
+from .service_api import (
+    HttpCaller,
+    RemoteCatalogService,
+    RemoteSearchService,
+    RemoteRecommendationService,
+    ServiceSettings,
+)
 
 
 settings = ServiceSettings()
@@ -30,27 +36,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/cellar/ids")
 def get_cellar_ids() -> List[int]:
     return []
+
 
 @app.post("/cellar/add")
 def add_to_cellar(wine_id: int):
     return
 
+
 @app.post("/cellar/remove")
 def remove_from_cellar(wine_id: int):
     return
 
+
 @app.get("/wines/recommendations")
 def get_recommendations(query: str) -> List[Wine]:
     cellar_ids = get_cellar_ids()
-    request = RecommendationRequest(query=query, wine_ids=cellar_ids, limit=10, exclude_ids=[])
+    request = RecommendationRequest(
+        query=query, wine_ids=cellar_ids, limit=10, exclude_ids=[]
+    )
     wine_ids = recs_service.get_recommendations(request)
     wines = []
     if wine_ids:
         wines = catalog_service.get_wine(wine_ids)
     return wines
+
 
 @app.get("/wines/search")
 def search_wines(request: Annotated[SearchRequest, Query()]) -> PaginatedList[Wine]:

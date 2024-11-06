@@ -66,10 +66,7 @@ spec:
           command: ["./ezbake"]
           args: ["--all-namespaces"]
           image: ghcr.io/junction-labs/junction-labs/ezbake:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: RUST_LOG
-              value: "ezbake=trace,warn"
+          imagePullPolicy: Always
 ---
 apiVersion: v1
 kind: Service

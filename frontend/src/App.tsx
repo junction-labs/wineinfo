@@ -186,7 +186,7 @@ const App = () => {
             <p className="text-sm">{error}</p>
           </div>
         )}
-        
+
         <div className="p-4">
           {activeTab == 'catalog' && (
             <div className="flex gap-2 mb-4">
@@ -217,7 +217,7 @@ const App = () => {
                 placeholder="Describe what you would like..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && searchWines(1)}
+                onKeyPress={(e) => e.key === 'Enter' && recommendWines()}
                 className="flex-1 w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
@@ -233,8 +233,8 @@ const App = () => {
               </button>
             </div>
           )}
-              
-          {wines.length > 0 && totalPages > 1 &&  (
+
+          {wines.length > 0 && totalPages > 1 && (
             <div className="text-sm text-gray-600 mb-4">
               Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} of {total} results
             </div>
@@ -275,8 +275,8 @@ const App = () => {
                 <button
                   onClick={() => cellarWines.has(wine.id) ? removeFromCellar(wine) : addToCellar(wine)}
                   className={`w-full px-4 py-2 rounded-md transition-colors ${cellarWines.has(wine.id)
-                      ? 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                 >
                   {cellarWines.has(wine.id) ? 'Remove from Cellar' : 'Add to Cellar'}

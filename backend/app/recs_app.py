@@ -7,6 +7,7 @@ from .recs import RecommendationRequest, RecommendationServiceImpl
 app = FastAPI()
 service = RecommendationServiceImpl()
 
+
 @app.get(RemoteRecommendationService.GET_RECOMMENDATIONS)
 def get_recommendations(request: RecommendationRequest = Depends()) -> List[int]:
     return service.get_recommendations(request)
