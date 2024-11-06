@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 from fastapi import HTTPException, Query
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel, Field, TypeAdapter
-from typing import  Dict, List, Optional
+from typing import Dict, List, Optional
 
 
 class HttpCaller:
     def __init__(self, base_url: str, session):
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.session = session
 
     def get(self, url: str, request: BaseModel | Dict) -> Dict:
@@ -18,7 +18,9 @@ class HttpCaller:
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Remote request to {url} failed: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Remote request to {url} failed: {str(e)}"
+            )
 
 
 class Wine(BaseModel):
@@ -36,6 +38,7 @@ class Wine(BaseModel):
     taster_twitter_handle: str
     variety: str
     winery: str
+
 
 class PaginatedList[T](BaseModel):
     items: List[T]
@@ -63,13 +66,21 @@ class RemoteCatalogService(CatalogService):
         self.caller = caller
 
     GET_WINES = "/wines/"
-    def get_wine(self, ids: List[int]) -> List[Wine]:
-        return TypeAdapter(List[Wine]).validate_python(self.caller.get(RemoteCatalogService.GET_WINES, {"ids": ids}))
 
+    def get_wine(self, ids: List[int]) -> List[Wine]:
+        return TypeAdapter(List[Wine]).validate_python(
+            self.caller.get(RemoteCatalogService.GET_WINES, {"ids": ids})
+        )
 
     GET_ALL_WINES_PAGINATED = "/wines/batch/"
+
     def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
-        return PaginatedList[Wine].model_validate(self.caller.get(RemoteCatalogService.GET_ALL_WINES_PAGINATED, {"page": page, "page_size": page_size}))
+        return PaginatedList[Wine].model_validate(
+            self.caller.get(
+                RemoteCatalogService.GET_ALL_WINES_PAGINATED,
+                {"page": page, "page_size": page_size},
+            )
+        )
 
 
 class SearchRequest(BaseModel):
@@ -83,13 +94,17 @@ class SearchService(ABC):
     def search(self, request: SearchRequest) -> PaginatedList[int]:
         pass
 
+
 class RemoteSearchService:
     def __init__(self, caller: HttpCaller):
         self.caller = caller
 
     SEARCH = "/search/"
+
     def search(self, request: SearchRequest) -> PaginatedList[int]:
-        return PaginatedList[int].model_validate(self.caller.get(RemoteSearchService.SEARCH, request))
+        return PaginatedList[int].model_validate(
+            self.caller.get(RemoteSearchService.SEARCH, request)
+        )
 
 
 class RecommendationRequest(BaseModel):
@@ -110,8 +125,11 @@ class RemoteRecommendationService(RecommendationService):
         self.caller = caller
 
     GET_RECOMMENDATIONS = "/recommendations/"
+
     def get_recommendations(self, request: RecommendationRequest) -> List[int]:
-        return TypeAdapter(List[int]).validate_python(self.caller.get(RemoteRecommendationService.GET_RECOMMENDATIONS, request))
+        return TypeAdapter(List[int]).validate_python(
+            self.caller.get(RemoteRecommendationService.GET_RECOMMENDATIONS, request)
+        )
 
 
 class ServiceSettings(BaseSettings):
@@ -120,3 +138,4 @@ class ServiceSettings(BaseSettings):
     recs_service: str = "http://localhost:8003"
     using_kube: bool = False
     use_junction: bool = False
+    data_path: str = "backend/data/gen"

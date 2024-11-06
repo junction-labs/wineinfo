@@ -7,6 +7,7 @@ from .search import SearchRequest, SearchServiceImpl
 app = FastAPI()
 service = SearchServiceImpl()
 
+
 @app.get(RemoteSearchService.SEARCH)
 def search(request: Annotated[SearchRequest, Query()]) -> PaginatedList[int]:
     return service.search(request)

@@ -1,0 +1,199 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-frontend
+  labels:
+    app: wineinfo
+    service: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: frontend
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: frontend
+    spec:
+      containers:
+      - name: wineinfo-frontend
+        image: wineinfo-frontend:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: VITE_BACKEND
+            value: "http://localhost:8011"
+        command: ["npm", "run", "dev", "--", "--host"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-frontend
+spec:
+  type: NodePort
+  selector:
+    app: wineinfo
+    service: frontend
+  ports:
+    - nodePort: 30010
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: backend
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: backend
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/backend_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+          - name: CATALOG_SERVICE
+            value: "http://wineinfo-catalog"
+          - name: SEARCH_SERVICE
+            value: "http://wineinfo-search"
+          - name: RECS_SERVICE
+            value: "http://wineinfo-recs"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-backend
+spec:
+  type: NodePort
+  selector:
+    app: wineinfo
+    service: backend
+  ports:
+    - nodePort: 30011
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-catalog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: catalog
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: catalog
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: DATA_PATH
+          value: /app/data/gen
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-catalog
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: catalog
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-recs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: recs
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: recs
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/recs_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: DATA_PATH
+          value: /app/data/gen
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-recs
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: recs
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-search
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: search
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: search
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/search_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: DATA_PATH
+          value: /app/data/gen
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-search
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: search
+  ports:
+    - port: 80
+      targetPort: 8000
