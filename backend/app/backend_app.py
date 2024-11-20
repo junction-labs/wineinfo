@@ -1,25 +1,27 @@
+from typing import Annotated, List
+
+import junction.requests
+import requests
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-import requests
-import junction.requests
-from typing import Annotated, List
+
 from .catalog import PaginatedList, Wine
 from .recs import RecommendationRequest
 from .search import SearchRequest
 from .service_api import (
     HttpCaller,
     RemoteCatalogService,
-    RemoteSearchService,
     RemoteRecommendationService,
+    RemoteSearchService,
     ServiceSettings,
 )
-
 
 settings = ServiceSettings()
 if settings.use_junction:
     session = junction.requests.Session()
 else:
     session = requests.Session()
+
 catalog_service = RemoteCatalogService(HttpCaller(settings.catalog_service, session))
 search_service = RemoteSearchService(HttpCaller(settings.search_service, session))
 recs_service = RemoteRecommendationService(HttpCaller(settings.recs_service, session))

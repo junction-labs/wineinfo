@@ -19,6 +19,10 @@ class CatalogServiceImpl(CatalogService):
                 reader = csv.DictReader(file)
                 for row in reader:
                     row = {k: v if v is not None else "" for k, v in row.items()}
+
+                    if settings.mojibake:
+                        row["title"] = row["title"].encode("utf-8").decode("iso-8859-1")
+
                     self.add_wine(Wine.model_validate(row))
 
     def get_wine(self, ids: List[int]) -> List[Wine]:

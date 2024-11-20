@@ -5,6 +5,16 @@ from pydantic import BaseModel, Field, TypeAdapter
 from typing import Dict, List, Optional
 
 
+class ServiceSettings(BaseSettings):
+    catalog_service: str = "http://localhost:8001"
+    search_service: str = "http://localhost:8002"
+    recs_service: str = "http://localhost:8003"
+    using_kube: bool = False
+    use_junction: bool = False
+    data_path: str = "backend/data/gen"
+    mojibake: bool = False
+
+
 class HttpCaller:
     def __init__(self, base_url: str, session):
         self.base_url = base_url.rstrip("/")
@@ -130,12 +140,3 @@ class RemoteRecommendationService(RecommendationService):
         return TypeAdapter(List[int]).validate_python(
             self.caller.get(RemoteRecommendationService.GET_RECOMMENDATIONS, request)
         )
-
-
-class ServiceSettings(BaseSettings):
-    catalog_service: str = "http://localhost:8001"
-    search_service: str = "http://localhost:8002"
-    recs_service: str = "http://localhost:8003"
-    using_kube: bool = False
-    use_junction: bool = False
-    data_path: str = "backend/data/gen"
