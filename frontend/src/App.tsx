@@ -8,6 +8,12 @@ interface Notification {
   type: 'success' | 'error';
 }
 
+const users = [
+  { id: "anonymous", name: "Logged Out" },
+  { id: "customer", name: "Customer" },
+  { id: "admin", name: "Admin" },
+];
+
 const App = () => {
   const [activeTab, setActiveTab] = useState<TabType>('catalog');
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,10 +26,13 @@ const App = () => {
   const [total, setTotal] = useState(0);
   const [cellarWines, setCellarWines] = useState(new Set());
   const [notification, setNotification] = useState<Notification | null>(null);
+  const [userId, setUserId] = useState(users[0].id);
 
 
   const initializeData = async () => {
     try {
+      wineService.setUserId(userId);
+
       setSearchTerm("");
       setWines([]);
       setTotalPages(0);
@@ -151,6 +160,23 @@ const App = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
+      <div className="bg-white flex justify-between">
+        <div className="text-left">
+          <p>Logged in as <span className="inline font-mono">{userId}</span></p>
+        </div>
+        <div className="text-right">
+          <label htmlFor="authuser">View Page As:</label>
+          <select name="authuser" defaultValue={userId} onChange={(e) => {
+            setUserId(e.target.value);
+            wineService.setUserId(e.target.value);
+          }}>
+            {
+              users.map(({ id, name }) => (<option key={id} value={id}>{name}</option>))
+            }
+          </select>
+        </div>
+      </div>
+      <div className="pb-10"></div>
       <div className="bg-white rounded-lg shadow-lg">
         <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8" aria-label="Tabs">
