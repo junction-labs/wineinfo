@@ -33,16 +33,28 @@ export interface WineSearchParams {
 
 class WineService {
     private baseUrl: string;
+    private userId: string | undefined;
 
     constructor(baseUrl: string) {
         this.baseUrl = baseUrl;
     }
-    
+
+    setUserId(userId: string) {
+        this.userId = userId;
+    }
+
     async get(path: string, query: any = {}): Promise<any> {
         try {
-            const qs = new URLSearchParams(query);
-            const response = await fetch(`${this.baseUrl}/${path}?` + qs.toString(), {
+            const query_params = new URLSearchParams(query);
+            var headers = {}
+            if (this.userId) {
+                headers = {
+                    "x-wineinfo-user": this.userId,
+                };
+            }
+            const response = await fetch(`${this.baseUrl}/${path}?` + query_params.toString(), {
                 method: 'GET',
+                headers,
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch');
@@ -91,7 +103,7 @@ class WineService {
         return new Set(data.wineIds);
     }
 
-    async recommendWines(query:string): Promise<Array<Wine>> {
+    async recommendWines(query: string): Promise<Array<Wine>> {
         const q = {
             query: query,
         }
