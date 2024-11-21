@@ -2,7 +2,7 @@ from typing import Annotated, List
 
 import junction.requests
 import requests
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 from .catalog import PaginatedList, Wine
@@ -63,19 +63,26 @@ def get_recommendations(query: str) -> List[Wine]:
     wine_ids = recs_service.get_recommendations(request)
     wines = []
     if wine_ids:
-        wines = catalog_service.get_wine(wine_ids)
+        wines = catalog_service.get_wine(auth_user=None, ids=wine_ids)
     return wines
 
 
 @app.get("/wines/search")
-def search_wines(request: Annotated[SearchRequest, Query()]) -> PaginatedList[Wine]:
+def search_wines(
+    request: Annotated[SearchRequest, Query()],
+    x_wineinfo_user: Annotated[str | None, Header()] = None,
+) -> PaginatedList[Wine]:
     if not request.query.strip():
-        return catalog_service.get_all_wines_paginated(request.page, request.page_size)
+        return catalog_service.get_all_wines_paginated(
+            auth_user=x_wineinfo_user,
+            page=request.page,
+            page_size=request.page_size,
+        )
 
-    results = search_service.search(request)
+    results = search_service.search(auth_user=x_wineinfo_user, request=request)
     wines = []
     if results.items:
-        wines = catalog_service.get_wine(results.items)
+        wines = catalog_service.get_wine(auth_user=x_wineinfo_user, ids=results.items)
     return PaginatedList[Wine](
         items=wines,
         total=results.total,

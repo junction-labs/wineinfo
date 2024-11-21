@@ -20,11 +20,18 @@ class HttpCaller:
         self.base_url = base_url.rstrip("/")
         self.session = session
 
-    def get(self, url: str, request: BaseModel | Dict) -> Dict:
+    def get(self, url: str, request: BaseModel | Dict, auth_user=None) -> Dict:
         try:
             if not isinstance(request, dict):
                 request = request.model_dump()
-            response = self.session.get(f"{self.base_url}{url}", params=request)
+
+            headers = {}
+            if auth_user:
+                headers["x-wineinfo-user"] = auth_user
+
+            response = self.session.get(
+                f"{self.base_url}{url}", params=request, headers=headers
+            )
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -63,11 +70,13 @@ class PaginatedList[T](BaseModel):
 
 class CatalogService(ABC):
     @abstractmethod
-    def get_wine(self, ids: List[int]) -> List[Wine]:
+    def get_wine(self, auth_user: str | None, ids: List[int]) -> List[Wine]:
         pass
 
     @abstractmethod
-    def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
+    def get_all_wines_paginated(
+        self, auth_user: str | None, page: int, page_size: int
+    ) -> PaginatedList[Wine]:
         pass
 
 
@@ -77,18 +86,25 @@ class RemoteCatalogService(CatalogService):
 
     GET_WINES = "/wines/"
 
-    def get_wine(self, ids: List[int]) -> List[Wine]:
+    def get_wine(self, auth_user: str | None, ids: List[int]) -> List[Wine]:
         return TypeAdapter(List[Wine]).validate_python(
-            self.caller.get(RemoteCatalogService.GET_WINES, {"ids": ids})
+            self.caller.get(
+                auth_user=auth_user,
+                url=RemoteCatalogService.GET_WINES,
+                request={"ids": ids},
+            )
         )
 
     GET_ALL_WINES_PAGINATED = "/wines/batch/"
 
-    def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
+    def get_all_wines_paginated(
+        self, auth_user: str | None, page: int, page_size: int
+    ) -> PaginatedList[Wine]:
         return PaginatedList[Wine].model_validate(
             self.caller.get(
-                RemoteCatalogService.GET_ALL_WINES_PAGINATED,
-                {"page": page, "page_size": page_size},
+                auth_user=auth_user,
+                url=RemoteCatalogService.GET_ALL_WINES_PAGINATED,
+                request={"page": page, "page_size": page_size},
             )
         )
 
@@ -111,9 +127,11 @@ class RemoteSearchService:
 
     SEARCH = "/search/"
 
-    def search(self, request: SearchRequest) -> PaginatedList[int]:
+    def search(
+        self, auth_user: str | None, request: SearchRequest
+    ) -> PaginatedList[int]:
         return PaginatedList[int].model_validate(
-            self.caller.get(RemoteSearchService.SEARCH, request)
+            self.caller.get(RemoteSearchService.SEARCH, request, auth_user=auth_user)
         )
 
 
