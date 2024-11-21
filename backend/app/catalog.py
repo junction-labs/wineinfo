@@ -25,7 +25,7 @@ class CatalogServiceImpl(CatalogService):
 
                     self.add_wine(Wine.model_validate(row))
 
-    def get_wine(self, ids: List[int]) -> List[Wine]:
+    def get_wine(self, auth_user: str | None, ids: List[int]) -> List[Wine]:
         wines = []
         missing_ids = []
 
@@ -42,7 +42,9 @@ class CatalogServiceImpl(CatalogService):
 
         return wines
 
-    def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
+    def get_all_wines_paginated(
+        self, auth_user: str | None, page: int, page_size: int
+    ) -> PaginatedList[Wine]:
         offset = (page - 1) * page_size
         paginated_wines = self.data[offset : offset + page_size]
         return PaginatedList[Wine](
