@@ -48,7 +48,12 @@ start the demo:
 ./deploy/setup.sh
 ```
 
-Once your'e done, point your browser at <http://localhost:8010> and you should see
+Once you're done, point your browser at <http://localhost:8010> and you should see
 the working wine UI.
 
 ![A screenshot of the demo UI](./frontend/screenshot.png)
+
+## Demo
+
+Once you're through clicking around the WineInfo site for the first time, head on
+over to [the first part of the demo](demo/01_intro.md).
