@@ -5,7 +5,6 @@ metadata:
   name: wineinfo-frontend
   labels:
     app: wineinfo
-    service: frontend
 spec:
   replicas: 1
   selector:
@@ -45,6 +44,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wineinfo-backend
+  labels:
+    app: wineinfo
 spec:
   replicas: 1
   selector:
@@ -63,12 +64,16 @@ spec:
         imagePullPolicy: IfNotPresent
         command: ["fastapi", "run", "/app/backend_app.py", "--host", "0.0.0.0", "--port", "8000"]
         env:
+          - name: JUNCTION_ADS_SERVER
+            value: grpc://ezbake.junction:8008
+          - name: USE_JUNCTION
+            value: "true"
           - name: CATALOG_SERVICE
-            value: "http://wineinfo-catalog"
+            value: "http://wineinfo-catalog.default.svc.cluster.local"
           - name: SEARCH_SERVICE
-            value: "http://wineinfo-search"
+            value: "http://wineinfo-search.default.svc.cluster.local"
           - name: RECS_SERVICE
-            value: "http://wineinfo-recs"
+            value: "http://wineinfo-recs.default.svc.cluster.local"
 ---
 apiVersion: v1
 kind: Service
@@ -88,6 +93,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wineinfo-catalog
+  labels:
+    app: wineinfo
 spec:
   replicas: 1
   selector:
@@ -126,6 +133,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wineinfo-recs
+  labels:
+    app: wineinfo
 spec:
   replicas: 1
   selector:
@@ -164,6 +173,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wineinfo-search
+  labels:
+    app: wineinfo
 spec:
   replicas: 1
   selector:
@@ -194,6 +205,48 @@ spec:
   selector:
     app: wineinfo
     service: search
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-catalog-next
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: catalog-next
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: catalog-next
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: DATA_PATH
+          value: /app/data/gen
+        - name: MOJIBAKE
+          value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-catalog-next
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: catalog-next
   ports:
     - port: 80
       targetPort: 8000

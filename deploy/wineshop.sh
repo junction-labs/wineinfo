@@ -7,14 +7,12 @@ set -euo pipefail
 
 backend_docker() {
     docker build \
-        --no-cache \
         --tag wineinfo-python:latest \
         --file backend/Dockerfile backend/
 }
 
 frontend_docker() {
     docker build \
-        --no-cache \
         --tag wineinfo-frontend:latest \
         --file frontend/Dockerfile frontend/
 }
