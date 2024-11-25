@@ -45,7 +45,7 @@ Once you've installed `k3d` (check that it works by running `k3d version`) you c
 start the demo:
 
 ```bash
-./deploy/setup.sh
+./deploy/wineinfo.sh
 ```
 
 Once you're done, point your browser at <http://localhost:8010> and you should see

@@ -39,7 +39,7 @@ wineinfo-catalog-next   1/1     1            1           10m
 ## Routing with Junction
 
 To roll out the new catalog to just logged-in admins, we're going to use
-Junction to build Route for the wineinfo service and deploy it to all of
+Junction to build Route for the WineInfo service and deploy it to all of
 our services dynamically. This won't involve changing code or rebuilding
 container images - we're just writing a little bit of Python to generate and
 publish configuration.
@@ -70,7 +70,7 @@ Our goal here is to only route logged-in administrators to the new version of
 the catalog service. In our wine info services, when someone is logged in, we
 add the 'x-wineinfo-user' header to every request, and pass that along.
 
-We can use that header to identify all traffic from wine info admins. To use
+We can use that header to identify all traffic from WineInfo admins. To use
 Junction to do that, we'll declare a match on headers that only matches when
 the "x-wineinfo-user" header has exactly the value "admin".
 
@@ -228,7 +228,7 @@ an HTTP request to the catalog Service will start routing requests based on
 whether or not they're logged in as an admin.
 
 To apply the example to the cluster and see the changes, activate the virtualenv
-you created while setting up the wineshop, and run `python ./junction/catalog-preview.py`.
+you created while setting up WineInfo, and run `python ./junction/catalog-preview.py`.
 You should see something like this:
 
 ```text
