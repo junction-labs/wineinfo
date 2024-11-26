@@ -14,7 +14,7 @@ website built with a handful of microservices and a Junction control plane
 that's distributing config to all of the clients in the cluster.
 
 The WineInfo site is built for 2024, and contains a Big data catalog service,
-a semantic search service, and a recommendations serivce. All of those services
+a semantic search service, and a recommendations service. All of those services
 are tied together with an API service that serves up a React frontend.
 
 ```text

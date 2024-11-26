@@ -81,7 +81,7 @@ is_admin: RouteMatch = {"headers": [{"name": "x-wineinfo-user", "value": "admin"
 To start moving traffic around, we need a Route. A Route is kind of like a
 declarative set of routes in an HTTP server. It can match on paths or on things
 like headers or query parameters. This Route is going to tell Junction to send
-all traffic from admins to the catalog-next service and all other trafic to the
+all traffic from admins to the catalog-next service and all other traffic to the
 normal catalog service.
 
 Here's the whole Route, before we walk through it bit-by-bit.
