@@ -5,13 +5,13 @@ sys.path.append(
         os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
     )
 )
-from backend.app.service_api import Wine
+from backend.app.service_api import ServiceSettings, Wine
 from backend.app.catalog import CatalogServiceImpl
-from backend.app.recs import RecommendationServiceImpl
+from backend.app.recs import RecsServiceImpl
 from backend.app.search import SearchServiceImpl
+from backend.app.persist import PersistServiceImpl
 import csv
 import argparse
-from pathlib import Path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate wineinfo data")
@@ -24,21 +24,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--src",
         default="backend/data/src/winemag-data-110k-v2.csv",
-        help="The destination directory for the generated data",
+        help="The source file to read from",
     )
     args = parser.parse_args()
 
-    if not os.path.exists(Path(CatalogServiceImpl.CATALOG_FILE).parent):
-        os.mkdir(Path(CatalogServiceImpl.CATALOG_FILE).parent)
+    service_settings = ServiceSettings()
+    if not os.path.exists(service_settings.data_path):
+        os.mkdir(service_settings.data_path)
 
-    catalog_service = CatalogServiceImpl(
-        ""
-    )  # empty string so it doesn't load from file
-    recommendation_service = RecommendationServiceImpl(True)
-    search_service = SearchServiceImpl(True)
+    persist_service = PersistServiceImpl(service_settings, True)   
+    catalog_service = CatalogServiceImpl(service_settings, True)
+    recs_service = RecsServiceImpl(service_settings, True)
+    search_service = SearchServiceImpl(service_settings, True)
     search_service.open_index()
-    recommendation_service.open_index()
-    with open(CatalogServiceImpl.CATALOG_FILE, "w", encoding="utf-8") as catalog_file:
+    recs_service.open_index()
+    with open(catalog_service.file_name, "w", encoding="utf-8") as catalog_file:
         csv_writer = csv.DictWriter(catalog_file, Wine.model_fields)
         csv_writer.writeheader()
         with open(args.src, "r", encoding="utf-8") as file:
@@ -53,11 +53,11 @@ if __name__ == "__main__":
                 wine = Wine.model_validate(row)
                 wine = catalog_service.add_wine(wine)
                 csv_writer.writerow(wine.model_dump())
-                recommendation_service.add_wine(wine)
+                recs_service.add_wine(wine)
                 search_service.add_wine(wine)
                 n = n + 1
                 if n == args.lines:
                     break
 
     search_service.build_index()
-    recommendation_service.build_index()
+    recs_service.build_index()

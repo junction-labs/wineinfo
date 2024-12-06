@@ -1,44 +1,71 @@
 from abc import ABC, abstractmethod
-from fastapi import HTTPException, Query
+from fastapi import HTTPException, Request
+from pydantic import BaseModel, TypeAdapter
+from typing import Dict, List, Tuple
+import junction.requests
+import requests
 from pydantic_settings import BaseSettings
-from pydantic import BaseModel, Field, TypeAdapter
-from typing import Dict, List, Optional
-
 
 class ServiceSettings(BaseSettings):
     catalog_service: str = "http://localhost:8001"
     search_service: str = "http://localhost:8002"
     recs_service: str = "http://localhost:8003"
-    using_kube: bool = False
+    persist_service: str = "http://localhost:8004"
     use_junction: bool = False
     data_path: str = "backend/data/gen"
     mojibake: bool = False
 
 
-class HttpCaller:
-    def __init__(self, base_url: str, session):
-        self.base_url = base_url.rstrip("/")
-        self.session = session
 
-    def get(self, url: str, request: BaseModel | Dict, auth_user=None) -> Dict:
+def get_fwd_headers(request: Request):
+    forwarded_headers = ["x-username"]
+    headers = {}
+    for header in forwarded_headers:
+        if request.headers.get(header):
+            headers[header] = request.headers[header]
+    return headers
+
+
+class HttpCaller:
+    def __init__(self, base_url: str, settings: ServiceSettings):
+        self.base_url = base_url.rstrip("/")
+        self.session = junction.requests.Session() if settings.use_junction else requests.Session()
+
+    def get(self, headers: Dict, url: str, request: BaseModel | Dict) -> Dict:
         try:
             if not isinstance(request, dict):
                 request = request.model_dump()
 
-            headers = {}
-            if auth_user:
-                headers["x-wineinfo-user"] = auth_user
-
             response = self.session.get(
-                f"{self.base_url}{url}", params=request, headers=headers
+                f"{self.base_url}{url}",
+                params=request,
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Remote request to {url} failed: {str(e)}"
+                status_code=500,
+                detail=f"Remote GET request to {url} failed: {str(e)}"
             )
 
+    def post(self, headers: Dict, url: str, request: BaseModel | Dict) -> Dict:
+        try:
+            if not isinstance(request, dict):
+                request = request.model_dump()
+
+            response = self.session.post(
+                f"{self.base_url}{url}",
+                json=request,
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Remote POST request to {url} failed: {str(e)}"
+            )
 
 class Wine(BaseModel):
     id: int | None
@@ -70,12 +97,12 @@ class PaginatedList[T](BaseModel):
 
 class CatalogService(ABC):
     @abstractmethod
-    def get_wine(self, auth_user: str | None, ids: List[int]) -> List[Wine]:
+    def get_wine(self, headers: Dict, ids: List[int]) -> List[Wine]:
         pass
 
     @abstractmethod
     def get_all_wines_paginated(
-        self, auth_user: str | None, page: int, page_size: int
+        self, headers: Dict, page: int, page_size: int
     ) -> PaginatedList[Wine]:
         pass
 
@@ -86,25 +113,25 @@ class RemoteCatalogService(CatalogService):
 
     GET_WINES = "/wines/"
 
-    def get_wine(self, auth_user: str | None, ids: List[int]) -> List[Wine]:
+    def get_wine(self, headers: Dict, ids: List[int]) -> List[Wine]:
         return TypeAdapter(List[Wine]).validate_python(
             self.caller.get(
-                auth_user=auth_user,
-                url=RemoteCatalogService.GET_WINES,
-                request={"ids": ids},
+               headers, 
+                RemoteCatalogService.GET_WINES,
+                {"ids": ids},
             )
         )
 
     GET_ALL_WINES_PAGINATED = "/wines/batch/"
 
     def get_all_wines_paginated(
-        self, auth_user: str | None, page: int, page_size: int
+        self, headers: Dict, page: int, page_size: int
     ) -> PaginatedList[Wine]:
         return PaginatedList[Wine].model_validate(
             self.caller.get(
-                auth_user=auth_user,
-                url=RemoteCatalogService.GET_ALL_WINES_PAGINATED,
-                request={"page": page, "page_size": page_size},
+                headers,
+                RemoteCatalogService.GET_ALL_WINES_PAGINATED,
+                {"page": page, "page_size": page_size},
             )
         )
 
@@ -117,7 +144,7 @@ class SearchRequest(BaseModel):
 
 class SearchService(ABC):
     @abstractmethod
-    def search(self, request: SearchRequest) -> PaginatedList[int]:
+    def search(self, headers: Dict, request: SearchRequest) -> PaginatedList[int]:
         pass
 
 
@@ -128,33 +155,52 @@ class RemoteSearchService:
     SEARCH = "/search/"
 
     def search(
-        self, auth_user: str | None, request: SearchRequest
+        self, headers: Dict, request: SearchRequest
     ) -> PaginatedList[int]:
         return PaginatedList[int].model_validate(
-            self.caller.get(RemoteSearchService.SEARCH, request, auth_user=auth_user)
+            self.caller.get(headers, RemoteSearchService.SEARCH, request)
         )
 
 
-class RecommendationRequest(BaseModel):
+class RecsRequest(BaseModel):
     query: str
     limit: int = 20
-    wine_ids: Optional[List[int]] = Field(Query([]))
-    exclude_ids: Optional[List[int]] = Field(Query([]))
 
 
-class RecommendationService(ABC):
+class RecsService(ABC):
     @abstractmethod
-    def get_recommendations(self, request: RecommendationRequest) -> List[int]:
+    def get_recommendations(self, headers: Dict, request: RecsRequest) -> List[int]:
         pass
 
 
-class RemoteRecommendationService(RecommendationService):
+class RemoteRecsService(RecsService):
     def __init__(self, caller: HttpCaller):
         self.caller = caller
 
     GET_RECOMMENDATIONS = "/recommendations/"
 
-    def get_recommendations(self, request: RecommendationRequest) -> List[int]:
+    def get_recommendations(self, headers: Dict, request: RecsRequest) -> List[int]:
         return TypeAdapter(List[int]).validate_python(
-            self.caller.get(RemoteRecommendationService.GET_RECOMMENDATIONS, request)
+            self.caller.get(headers, RemoteRecsService.GET_RECOMMENDATIONS, request)
+        )
+
+class SQLRequest(BaseModel):
+    query: str
+    params: list[str | int] | None
+
+class PersistService(ABC):
+    @abstractmethod
+    def do_sql(self, headers: Dict, query: str, params: List) -> List[Tuple]:
+        pass
+
+
+class RemotePersistService(PersistService):
+    def __init__(self, caller: HttpCaller):
+        self.caller = caller
+
+    DO_SQL = "/do_sql/"
+
+    def do_sql(self, headers: Dict, sql_request: SQLRequest) -> List[Tuple]:
+        return TypeAdapter(List[Tuple]).validate_python(
+            self.caller.post(headers, RemotePersistService.DO_SQL, sql_request)
         )

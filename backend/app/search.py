@@ -1,20 +1,19 @@
-from abc import ABC, abstractmethod
 import os
+import random
 import shutil
-from whoosh.filedb.filestore import RamStorage, FileStorage
+from typing import Dict
+from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, TEXT, ID, NUMERIC
 from whoosh.qparser import MultifieldParser
-from .service_api import SearchRequest, SearchService, ServiceSettings
+
+from .feature_flags import FeatureFlags
+from .service_api import HttpCaller, RemotePersistService, SearchRequest, SearchService, ServiceSettings
 from .catalog import PaginatedList, Wine
-
-
-settings = ServiceSettings()
+import time
 
 
 class SearchServiceImpl(SearchService):
-    SEARCH_DIR = os.path.join(settings.data_path, "search_data")
-
-    def __init__(self, reset: bool = False, path: str = SEARCH_DIR):
+    def __init__(self, settings: ServiceSettings, reset: bool = False):
         schema = Schema(
             id=ID(stored=True),
             title=TEXT(stored=True),
@@ -28,19 +27,19 @@ class SearchServiceImpl(SearchService):
             points=NUMERIC(stored=True),
             price=NUMERIC(stored=True),
         )
-        if path:
-            if reset and os.path.exists(path):
-                shutil.rmtree(path)
-            if not os.path.exists(path):
-                os.mkdir(path)
-            self.storage = FileStorage(path, supports_mmap=False)
-            if reset:
-                self.index = self.storage.create_index(indexname="index", schema=schema)
-            else:
-                self.index = self.storage.open_index(indexname="index")
+        self.settings = settings
+        persist_service = RemotePersistService(HttpCaller(settings.persist_service, settings))
+        self.feature_flags = FeatureFlags(persist_service)
+        path = os.path.join(settings.data_path, "search_data")
+        if reset and os.path.exists(path):
+            shutil.rmtree(path)
+        if not os.path.exists(path):
+            os.mkdir(path)
+        self.storage = FileStorage(path, supports_mmap=False)
+        if reset:
+            self.index = self.storage.create_index(indexname="index", schema=schema)
         else:
-            self.storage = RamStorage()
-            self.index = self.storage.create_index(schema)
+            self.index = self.storage.open_index(indexname="index")
 
     def open_index(self):
         self.writer = self.index.writer()
@@ -64,7 +63,12 @@ class SearchServiceImpl(SearchService):
         self.writer.commit()
         del self.writer
 
-    def search(self, request: SearchRequest) -> PaginatedList[int]:
+    def search(self, headers: Dict, request: SearchRequest) -> PaginatedList[int]:
+
+        if self.feature_flags.get("search_simulate_latency", ""):
+            if random.random() < 0.5:
+                time.sleep(2)
+
         with self.index.searcher() as searcher:
             fields = [
                 "title",

@@ -1,26 +1,24 @@
 from typing import Annotated, List
-from fastapi import FastAPI, Query, Header
-from .service_api import RemoteCatalogService
+from fastapi import FastAPI, Query, Request
+from .service_api import RemoteCatalogService, ServiceSettings, get_fwd_headers
 from .catalog import CatalogServiceImpl, PaginatedList, Wine
 
+
 app = FastAPI()
-service = CatalogServiceImpl()
+service = CatalogServiceImpl(ServiceSettings())
 
 
 @app.get(RemoteCatalogService.GET_WINES)
 async def get_wine(
-    ids: Annotated[list[int] | None, Query()],
-    x_wineinfo_user: Annotated[str | None, Header()] = None,
-) -> List[Wine]:
-    return service.get_wine(auth_user=x_wineinfo_user, ids=ids)
+    request: Request, 
+    ids: Annotated[list[int] | None, Query()]) -> List[Wine]:
+    return service.get_wine(get_fwd_headers(request), ids=ids)
 
 
 @app.get(RemoteCatalogService.GET_ALL_WINES_PAGINATED)
 async def get_all_wines_paginated(
+    request: Request, 
     page: int,
-    page_size: int,
-    x_wineinfo_user: Annotated[str | None, Header()] = None,
-) -> PaginatedList[Wine]:
-    return service.get_all_wines_paginated(
-        auth_user=x_wineinfo_user, page=page, page_size=page_size
+    page_size: int) -> PaginatedList[Wine]:
+    return service.get_all_wines_paginated(get_fwd_headers(request), page, page_size
     )

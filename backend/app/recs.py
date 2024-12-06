@@ -1,23 +1,17 @@
 import os
 import shutil
 import chromadb
-from typing import List
-from .service_api import RecommendationRequest, RecommendationService, ServiceSettings
+from typing import Dict, List
+from .service_api import RecsRequest, RecsService, ServiceSettings
 from .catalog import Wine
 
-settings = ServiceSettings()
+class RecsServiceImpl(RecsService):
 
-
-class RecommendationServiceImpl(RecommendationService):
-    RECS_DIR = os.path.join(settings.data_path, "recs_data")
-
-    def __init__(self, reset: bool = False, path: str = RECS_DIR):
-        if path:
-            if reset and os.path.exists(path):
-                shutil.rmtree(path)
-            self.chroma_client = chromadb.PersistentClient(path)
-        else:
-            self.chroma_client = chromadb.Client()
+    def __init__(self, settings: ServiceSettings, reset: bool = False):
+        path = os.path.join(settings.data_path, "recs_data")        
+        if reset and os.path.exists(path):
+            shutil.rmtree(path)
+        self.chroma_client = chromadb.PersistentClient(path)
         self.collection = self.chroma_client.get_or_create_collection(
             name="my_collection"
         )
@@ -40,23 +34,10 @@ class RecommendationServiceImpl(RecommendationService):
         self.batch_ids = []
         self.batch_documents = []
 
-    def get_recommendations(self, request: RecommendationRequest) -> List[int]:
+    def get_recommendations(self, headers: Dict, request: RecsRequest) -> List[int]:
         q = {}
-        q["n_results"] = (
-            request.limit + len(request.wine_ids) + len(request.exclude_ids)
-        )
+        q["n_results"] = ( request.limit )
         q["query_texts"] = [request.query]
-        if len(request.wine_ids) > 0:
-            q["query_embeddings"] = [
-                self.collection.get(
-                    ids=[str(x) for x in request.wine_ids], include=["embeddings"]
-                )["embeddings"]
-            ]
-
         results = self.collection.query(**q)
         all_ids = [int(id) for id in results["ids"][0]]
-        return [
-            id
-            for id in all_ids
-            if id not in request.exclude_ids and id not in request.wine_ids
-        ][: request.limit]
+        return all_ids[: request.limit]

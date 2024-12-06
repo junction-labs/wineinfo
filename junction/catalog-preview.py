@@ -15,7 +15,7 @@ catalog_next: Target = {
     "namespace": "default",
 }
 
-is_admin: RouteMatch = {"headers": [{"name": "x-wineinfo-user", "value": "admin"}]}
+is_admin: RouteMatch = {"headers": [{"name": "x-username", "value": "admin"}]}
 
 route: Route = {
     "vhost": catalog,
@@ -45,7 +45,7 @@ assert backend == {**catalog, "port": 80}
     routes=[route],
     method="GET",
     url="http://wineinfo-catalog.default.svc.cluster.local",
-    headers={"x-wineinfo-user": "admin"},
+    headers={"x-username": "admin"},
 )
 assert route["vhost"] == {**catalog, "port": None}
 assert rule_idx == 0

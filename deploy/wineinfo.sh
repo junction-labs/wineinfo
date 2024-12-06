@@ -24,7 +24,6 @@ import_images() {
     k3d image import -c "${cluster}" wineinfo-frontend:latest
 }
 
-
 k3d_cluster() {
     local cluster_name=$1;
 
@@ -52,9 +51,11 @@ main() {
     frontend_docker
     import_images "${cluster}"
 
+    kubectl config use-context k3d-"${cluster}"
     run_ezbake
     run_wineinfo
 }
 
 set -x
 main
+ 

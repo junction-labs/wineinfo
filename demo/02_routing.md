@@ -68,14 +68,14 @@ catalog_next: Target = {
 
 Our goal here is to only route logged-in administrators to the new version of
 the catalog service. In our wine info services, when someone is logged in, we
-add the 'x-wineinfo-user' header to every request, and pass that along.
+add the 'x-username' header to every request, and pass that along.
 
 We can use that header to identify all traffic from WineInfo admins. To use
 Junction to do that, we'll declare a match on headers that only matches when
-the "x-wineinfo-user" header has exactly the value "admin".
+the "x-username" header has exactly the value "admin".
 
 ```python
-is_admin: RouteMatch = {"headers": [{"name": "x-wineinfo-user", "value": "admin"}]}
+is_admin: RouteMatch = {"headers": [{"name": "x-username", "value": "admin"}]}
 ```
 
 To start moving traffic around, we need a Route. A Route is kind of like a
@@ -182,7 +182,7 @@ will get routed to.
 )
 ```
 
- For this logged-out request (it has no `x-wineinfo-user` header), let's double
+ For this logged-out request (it has no `x-username` header), let's double
  check that:
 
 - The route we got back is the right Route. It should have the catalog service
@@ -199,7 +199,7 @@ assert backend == {**catalog, "port": 80}
 ```
 
  Let's try again with an authenticated request. All we have to do is set our
- x-wineinfo-user header to the value "admin" and we're good to go.
+ x-username header to the value "admin" and we're good to go.
 
  This time the Route should be the same, but:
 
@@ -212,7 +212,7 @@ assert backend == {**catalog, "port": 80}
     routes=[route],
     method="GET",
     url="<http://wineinfo-catalog.default.svc.cluster.local>",
-    headers={"x-wineinfo-user": "admin"},
+    headers={"x-username": "admin"},
 )
 assert route["vhost"] == {**catalog, "port": None}
 assert rule_idx == 0
@@ -237,7 +237,7 @@ httproute.gateway.networking.k8s.io/wineinfo-catalog created
 ```
 
 Once you apply the changes click around the WineInfo page a little. Try
-switching between an `anonymous` user, a `customer` and an `admin`. You might
+switching between an `anonymous` user vs logging in as an `admin`. You might
 notice that when you're logged in as an `admin`, things start to look a little
 funny. Try searching for "germany".
 

@@ -1,21 +1,17 @@
 from fastapi import HTTPException
-from typing import List
+from typing import Dict, List
 
 import csv
 import os
-
-from .service_api import CatalogService, ServiceSettings, PaginatedList, Wine
-
-settings = ServiceSettings()
+from .service_api import CatalogService, PaginatedList, ServiceSettings, Wine
 
 
 class CatalogServiceImpl(CatalogService):
-    CATALOG_FILE = os.path.join(settings.data_path, "catalog_data.csv")
-
-    def __init__(self, path: str = CATALOG_FILE):
+    def __init__(self, settings: ServiceSettings, reset: bool = False):
         self.data: List[Wine] = []
-        if path:
-            with open(path, "r", encoding="utf-8") as file:
+        self.file_name = os.path.join(settings.data_path, "catalog_data.csv")
+        if not reset:
+            with open(self.file_name, "r", encoding="utf-8") as file:
                 reader = csv.DictReader(file)
                 for row in reader:
                     row = {k: v if v is not None else "" for k, v in row.items()}
@@ -25,7 +21,7 @@ class CatalogServiceImpl(CatalogService):
 
                     self.add_wine(Wine.model_validate(row))
 
-    def get_wine(self, auth_user: str | None, ids: List[int]) -> List[Wine]:
+    def get_wine(self, headers: Dict, ids: List[int]) -> List[Wine]:
         wines = []
         missing_ids = []
 
@@ -43,7 +39,7 @@ class CatalogServiceImpl(CatalogService):
         return wines
 
     def get_all_wines_paginated(
-        self, auth_user: str | None, page: int, page_size: int
+        self, headers: Dict, page: int, page_size: int
     ) -> PaginatedList[Wine]:
         offset = (page - 1) * page_size
         paginated_wines = self.data[offset : offset + page_size]

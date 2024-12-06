@@ -57,3 +57,49 @@ the working wine UI.
 
 Once you're through clicking around the WineInfo site for the first time, head on
 over to [the first part of the demo](demo/01_intro.md).
+
+## Developing the demo code with hot reload
+
+The easiest way to develop the demo is using the interactive mode of the various 
+web servers. run the following in 5 different shells, then, go to 
+`http://localhost:3000/`:
+
+Frontend (defaults to port 3000):
+```
+cd frontend
+npm install
+npm run dev
+```
+
+Backend:
+```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+python3 backend/bin/build_data.py
+fastapi dev backend/app/backend_app.py --port 8000
+```
+
+Persist:
+```
+source .venv/bin/activate
+fastapi dev backend/app/persist_app.py --port 8004
+```
+
+Recs:
+```
+source .venv/bin/activate
+fastapi dev backend/app/recs_app.py --port 8003
+```
+
+Search:
+```
+source .venv/bin/activate
+fastapi dev backend/app/search_app.py --port 8002
+```
+
+Catalog:
+```
+source .venv/bin/activate
+fastapi dev backend/app/catalog_app.py --port 8001
+```
