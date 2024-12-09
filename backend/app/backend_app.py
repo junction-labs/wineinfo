@@ -3,11 +3,11 @@ from fastapi import FastAPI, Query, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .feature_flags import FeatureFlags
-from .catalog import PaginatedList, Wine
-from .recs import RecsRequest
-from .search import SearchRequest
-from .service_api import (
+from .services.feature_flags import FeatureFlags
+from .services.catalog import PaginatedList, Wine
+from .services.recs import RecsRequest
+from .services.search import SearchRequest
+from .services.service_api import (
     get_fwd_headers,
     HttpCaller,
     RemoteCatalogService,

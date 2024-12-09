@@ -25,10 +25,11 @@ python3 backend/bin/build_data.py
 ## Deploying
 
 This demo focuses on dynamic discovery in Kubernetes. To make it easy to run
-without being a Kubernetes whiz, it runs in a self-contained [`k3d`][k3d] cluster.
+without being a Kubernetes whiz, it runs in a self-contained [`k3d`][k3d]
+cluster.
 
-To run the demo you need `docker` and `kubectl` installed. This README won't cover
-installing those tools.
+To run the demo you need `docker` and `kubectl` installed. This README won't
+cover installing those tools.
 
 Once you've gotten both `docker` and `kubectl` set up, install `k3d` by running:
 
@@ -41,27 +42,27 @@ or check out the [official k3d installation instructions][k3d-install]
 [k3d]: https://k3d.io/
 [k3d-install]: https://k3d.io/v5.7.4/#install-script
 
-Once you've installed `k3d` (check that it works by running `k3d version`) you can
-start the demo:
+Once you've installed `k3d` (check that it works by running `k3d version`) you
+can start the demo:
 
 ```bash
 ./deploy/wineinfo.sh
 ```
 
-Once you're done, point your browser at <http://localhost:8010> and you should see
-the working wine UI.
+Once you're done, point your browser at <http://localhost:8010> and you should
+see the working wine UI.
 
 ![A screenshot of the demo UI](./frontend/screenshot.png)
 
 ## Demo
 
-Once you're through clicking around the WineInfo site for the first time, head on
-over to [the first part of the demo](demo/01_intro.md).
+Once you're through clicking around the WineInfo site for the first time, head
+on over to [the first part of the demo](demo/01_intro.md).
 
 ## Developing the demo code with hot reload
 
-The easiest way to develop the demo is using the interactive mode of the various 
-web servers. run the following in 5 different shells, then, go to 
+The easiest way to develop the demo is using the interactive mode of the various
+web servers. run the following in 5 different shells, then, go to
 `http://localhost:3000/`:
 
 Frontend (defaults to port 3000):

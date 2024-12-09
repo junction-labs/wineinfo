@@ -1,7 +1,7 @@
 from typing import Annotated, List
 from fastapi import FastAPI, Query, Request
-from .service_api import RemoteCatalogService, ServiceSettings, get_fwd_headers
-from .catalog import CatalogServiceImpl, PaginatedList, Wine
+from .services.service_api import RemoteCatalogService, ServiceSettings, get_fwd_headers
+from .services.catalog import CatalogServiceImpl, PaginatedList, Wine
 
 
 app = FastAPI()

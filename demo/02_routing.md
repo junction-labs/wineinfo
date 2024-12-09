@@ -15,7 +15,7 @@ Like we mentioned in the introduction, WineInfo is deployed as microservices on
 Kubernetes. If we check out the WineInfo cluster we can see a Service and a
 Deployment for the catalog service. It's creatively called `wineinfo-catalog`.
 
-```text
+```bash
 $ kubectl get svc/wineinfo-catalog
 NAME                       TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 service/wineinfo-catalog   ClusterIP   10.43.180.24   <none>        80/TCP    11m
@@ -27,7 +27,7 @@ deployment.apps/wineinfo-catalog   1/1     1            1           11m
 We can also see the next version of the catalog that the team has been working
 on. It's creatively called `wineinfo-catalog-next`.
 
-```text
+```bash
 $ kubectl get svc/wineinfo-catalog-next
 NAME                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
 wineinfo-catalog-next   ClusterIP   10.43.139.203   <none>        80/TCP    10m
@@ -39,10 +39,10 @@ wineinfo-catalog-next   1/1     1            1           10m
 ## Routing with Junction
 
 To roll out the new catalog to just logged-in admins, we're going to use
-Junction to build Route for the WineInfo service and deploy it to all of
-our services dynamically. This won't involve changing code or rebuilding
-container images - we're just writing a little bit of Python to generate and
-publish configuration.
+Junction to build Route for the WineInfo service and deploy it to all of our
+services dynamically. This won't involve changing code or rebuilding container
+images - we're just writing a little bit of Python to generate and publish
+configuration.
 
 Note that our configuration doesn't _have_ to be Python, it could be any
 language Junction supports. Since WineInfo is a Python service, it makes sense
@@ -51,7 +51,8 @@ are comfortable with it.
 
 > [!NOTE]
 >
-> All of the code for this example is in [catalog-preview.py](../junction/catalog-preview.py).
+> All of the code for this example is in
+> [catalog-preview.py](../junction/catalog-preview.py).
 
 To reference the catalog Services, we'll use Junction `KubeService` targets.
 
@@ -71,8 +72,8 @@ the catalog service. In our wine info services, when someone is logged in, we
 add the 'x-username' header to every request, and pass that along.
 
 We can use that header to identify all traffic from WineInfo admins. To use
-Junction to do that, we'll declare a match on headers that only matches when
-the "x-username" header has exactly the value "admin".
+Junction to do that, we'll declare a match on headers that only matches when the
+"x-username" header has exactly the value "admin".
 
 ```python
 is_admin: RouteMatch = {"headers": [{"name": "x-username", "value": "admin"}]}
@@ -158,9 +159,9 @@ service on port 80.
         },
 ```
 
-For now, that's all there is to know about Routes. As we get further into exploring
-Junction, we'll use Routes to match on other parts of outgoing requests or and to
-make our applications a more resilient to failure.
+For now, that's all there is to know about Routes. As we get further into
+exploring Junction, we'll use Routes to match on other parts of outgoing
+requests or and to make our applications a more resilient to failure.
 
 ## Testing Routes
 
@@ -182,8 +183,8 @@ will get routed to.
 )
 ```
 
- For this logged-out request (it has no `x-username` header), let's double
- check that:
+ For this logged-out request (it has no `x-username` header), let's double check
+ that:
 
 - The route we got back is the right Route. It should have the catalog service
 with no port as its VirtualHost.
@@ -228,10 +229,10 @@ an HTTP request to the catalog Service will start routing requests based on
 whether or not they're logged in as an admin.
 
 To apply the example to the cluster and see the changes, activate the virtualenv
-you created while setting up WineInfo, and run `python ./junction/catalog-preview.py`.
-You should see something like this:
+you created while setting up WineInfo, and run `python
+./junction/catalog-preview.py`. You should see something like this:
 
-```text
+```bash
 $ python ./junction/catalog-preview.py
 httproute.gateway.networking.k8s.io/wineinfo-catalog created
 ```
@@ -243,14 +244,14 @@ funny. Try searching for "germany".
 
 ![mojibake-homepage](./images/mojibake-search.jpg)
 
-Uh oh... maybe the new catalog service isn't ready for primetime yet. Log back in as
-a `customer` or an `anonymous` user, and convince yourself that this is a problem
-with the new catalog service.
+Uh oh... maybe the new catalog service isn't ready for primetime yet. Log back
+in as a `customer` or an `anonymous` user, and convince yourself that this is a
+problem with the new catalog service.
 
 Once you've done that, let's remove the Junction route, so all requests now go
 to the current `catalog` service.
 
-```text
+```bash
 kubectl delete httproute/wineinfo-catalog
 ```
 

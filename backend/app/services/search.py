@@ -7,8 +7,7 @@ from whoosh.fields import Schema, TEXT, ID, NUMERIC
 from whoosh.qparser import MultifieldParser
 
 from .feature_flags import FeatureFlags
-from .service_api import HttpCaller, RemotePersistService, SearchRequest, SearchService, ServiceSettings
-from .catalog import PaginatedList, Wine
+from .service_api import HttpCaller, RemotePersistService, SearchRequest, SearchService, ServiceSettings, PaginatedList, Wine
 import time
 
 
@@ -67,7 +66,7 @@ class SearchServiceImpl(SearchService):
 
         if self.feature_flags.get("search_simulate_latency", ""):
             if random.random() < 0.5:
-                time.sleep(2)
+                time.sleep(5)
 
         with self.index.searcher() as searcher:
             fields = [

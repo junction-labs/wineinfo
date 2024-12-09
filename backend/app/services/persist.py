@@ -41,4 +41,3 @@ class PersistServiceImpl(PersistService):
                 ret =  cursor.fetchall()
                 conn.commit()
                 return ret
-    

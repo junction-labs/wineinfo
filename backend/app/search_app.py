@@ -1,8 +1,7 @@
 from typing import Annotated
 from fastapi import FastAPI, Query, Request
-from .service_api import RemoteSearchService, ServiceSettings, get_fwd_headers
-from .catalog import PaginatedList
-from .search import SearchRequest, SearchServiceImpl
+from .services.service_api import RemoteSearchService, ServiceSettings, get_fwd_headers, PaginatedList
+from .services.search import SearchRequest, SearchServiceImpl
 
 app = FastAPI()
 service = SearchServiceImpl(ServiceSettings())

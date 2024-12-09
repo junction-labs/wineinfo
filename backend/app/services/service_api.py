@@ -16,7 +16,6 @@ class ServiceSettings(BaseSettings):
     mojibake: bool = False
 
 
-
 def get_fwd_headers(request: Request):
     forwarded_headers = ["x-username"]
     headers = {}

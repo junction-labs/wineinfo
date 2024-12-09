@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import Depends, FastAPI, Request
-from .service_api import RemoteRecsService, ServiceSettings, get_fwd_headers
-from .recs import RecsRequest, RecsServiceImpl
+from .services.service_api import RemoteRecsService, ServiceSettings, get_fwd_headers
+from .services.recs import RecsRequest, RecsServiceImpl
 
 
 app = FastAPI()

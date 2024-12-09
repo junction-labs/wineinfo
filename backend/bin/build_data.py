@@ -5,11 +5,11 @@ sys.path.append(
         os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
     )
 )
-from backend.app.service_api import ServiceSettings, Wine
-from backend.app.catalog import CatalogServiceImpl
-from backend.app.recs import RecsServiceImpl
-from backend.app.search import SearchServiceImpl
-from backend.app.persist import PersistServiceImpl
+from backend.app.services.service_api import ServiceSettings, Wine
+from backend.app.services.catalog import CatalogServiceImpl
+from backend.app.services.recs import RecsServiceImpl
+from backend.app.services.search import SearchServiceImpl
+from backend.app.services.persist import PersistServiceImpl
 import csv
 import argparse
 

@@ -1,10 +1,12 @@
 from typing import Dict
 
+from ..services.service_api import PersistService
+
 ##
 ## Feature Flags built on top of our persistence service
 ##
 class FeatureFlags:
-    def __init__(self, persist_service):
+    def __init__(self, persist_service: PersistService):
         self.persist_service = persist_service
 
     def get_all(self) -> Dict[str, str]:
