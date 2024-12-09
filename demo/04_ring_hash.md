@@ -37,7 +37,7 @@ generating a new request at most every single. i.e. Loading our service with
 10 requests per second.
 
 
-Run it with ``.  You should see something like this:
+Run it with `junction/generate-reqs-requests.py`.  You should see something like this:
 
 ```
 time: 0.5, thread: 1, query: foo, response-time: 0.1, response_code: 200
