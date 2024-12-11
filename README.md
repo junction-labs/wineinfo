@@ -59,7 +59,9 @@ see the working wine UI.
 Once you're through clicking around the WineInfo site for the first time, head
 on over to [the first part of the demo](demo/01_intro.md).
 
-## Developing the demo code with hot reload
+## For developers of the demo
+
+### Developing the demo code with hot reload
 
 The easiest way to develop the demo is using the interactive mode of the various
 web servers. run the following in 5 different shells, then, go to

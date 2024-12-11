@@ -1,0 +1,31 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-recs
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: recs
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: recs
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/recs_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        envFrom:
+        - configMapRef:
+            name: wineinfo-backend-config
+        env:
+        - name: CATALOG_DEMO_MOJIBAKE
+          value: "true"
+            

@@ -21,16 +21,6 @@ class PersistServiceImpl(PersistService):
                 """
             )
             conn.commit()
-            cursor.execute("DROP TABLE IF EXISTS feature_flags")
-            cursor.execute(
-                """
-                CREATE TABLE feature_flags (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-                """
-            )
-            conn.commit()
             conn.close
 
 

@@ -44,11 +44,6 @@ export function Layout({ children, onUserChange }: LayoutProps) {
                             <Link to="/" className="text-xl font-semibold text-gray-900 hover:text-gray-700">
                                 Wine Catalog
                             </Link>
-                            {currentUser.isAdmin && (
-                                <Link to="/admin" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                    Admin Console
-                                </Link>
-                            )}
                         </div>
 
                         <div className="flex items-center space-x-4">

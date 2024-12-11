@@ -1,7 +1,16 @@
-from typing import Sequence
-
 import tempfile
 import subprocess
+import junction
+
+def service_hostname(service: junction.config.Service) -> str:
+    """
+    Returns the hostname for a junction Service, to be used in 
+    route matching for it.
+    """
+    if service["type"].lower == "dns":
+        return service["hostname"]
+    else:
+        return f"{service['name']}.{service['namespace']}.svc.cluster.local"
 
 
 def kubectl_apply(*manifests):

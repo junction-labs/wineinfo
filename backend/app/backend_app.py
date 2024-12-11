@@ -3,7 +3,6 @@ from fastapi import FastAPI, Query, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .services.feature_flags import FeatureFlags
 from .services.catalog import PaginatedList, Wine
 from .services.recs import RecsRequest
 from .services.search import SearchRequest
@@ -23,7 +22,6 @@ catalog_service = RemoteCatalogService(HttpCaller(settings.catalog_service, sett
 search_service = RemoteSearchService(HttpCaller(settings.search_service, settings))
 recs_service = RemoteRecsService(HttpCaller(settings.recs_service, settings))
 persist_service = RemotePersistService(HttpCaller(settings.persist_service, settings))
-feature_flags = FeatureFlags(persist_service)
 
 app = FastAPI()
 
@@ -71,19 +69,6 @@ def remove_from_cellar(request: Request, wine_id: int, x_username: Annotated[str
         })
 
 
-@app.get("/admin/get_feature_flags")
-def get_feature_flags(request: Request) -> Dict[str, str]:
-    return feature_flags.get_all()
-
-
-class SetFeatureFlagRequest(BaseModel):
-    key: str
-    value: str
-
-
-@app.post("/admin/set_feature_flag")
-def set_feature_flag(request: Request, params:SetFeatureFlagRequest):
-    feature_flags.set(params.key, params.value)
 
 
 @app.get("/wines/recommendations")

@@ -2,83 +2,16 @@ import os
 import shutil
 import time
 import chromadb
-from typing import Dict, List
+from collections import deque
+from typing import Deque, Dict, List
 from .service_api import RecsRequest, RecsService, ServiceSettings
 from .catalog import Wine
-
-class LRUCache:
-    class Node:
-        def __init__(self, key, value):
-            self.key = key
-            self.value = value
-            self.prev = None
-            self.next = None
-
-    def __init__(self, capacity: int):
-        self.capacity = capacity
-        self.cache = {}  # key -> Node
-        self.head = self.Node(0, 0)
-        self.tail = self.Node(0, 0)
-        self.head.next = self.tail
-        self.tail.prev = self.head
-
-    def _remove(self, node):
-        node.prev.next = node.next
-        node.next.prev = node.prev
-
-    def _add(self, node):
-        node.prev = self.head
-        node.next = self.head.next
-        self.head.next.prev = node
-        self.head.next = node
-
-    def get(self, key):
-        if key in self.cache:
-            node = self.cache[key]
-            # Move to front (most recently used)
-            self._remove(node)
-            self._add(node)
-            return node.value
-        return None
-
-    def put(self, key, value):
-        if key in self.cache:
-            self._remove(self.cache[key])
-        
-        node = self.Node(key, value)
-        self.cache[key] = node
-        self._add(node)
-        
-        if len(self.cache) > self.capacity:
-            lru_node = self.tail.prev
-            self._remove(lru_node)
-            del self.cache[lru_node.key]
-
-    def peek_oldest(self):
-        """
-        Returns (key, value) tuple of the least recently used item
-        without modifying its position in the cache.
-        Returns None if cache is empty.
-        """
-        if not self.cache:
-            return None
-        oldest = self.tail.prev
-        if oldest == self.head:
-            return None
-        return (oldest.key, oldest.value)
-
-    def __len__(self):
-        return len(self.cache)
-
-    def clear(self):
-        self.cache.clear()
-        self.head.next = self.tail
-        self.tail.prev = self.head
 
 
 class RecsServiceImpl(RecsService):
 
     def __init__(self, settings: ServiceSettings, reset: bool = False):
+        self.recs_demo_failure = settings.recs_demo_failure
         path = os.path.join(settings.data_path, "recs_data")        
         if reset and os.path.exists(path):
             shutil.rmtree(path)
@@ -86,8 +19,13 @@ class RecsServiceImpl(RecsService):
         self.collection = self.chroma_client.get_or_create_collection(
             name="my_collection"
         )
-        self.cache = LRUCache(10)
-
+        # Initialize failure simulation components
+        self.query_history: Deque[Dict] = deque()
+        self.failure_until: float = 0
+        self.WINDOW_SECONDS = 2
+        self.QUERY_THRESHOLD = 5
+        self.FAILURE_DURATION = 5        
+   
     def open_index(self):
         self.batch_ids = []
         self.batch_documents = []
@@ -106,22 +44,27 @@ class RecsServiceImpl(RecsService):
         self.batch_ids = []
         self.batch_documents = []
 
-    def get_recommendations_uncached(self, request: RecsRequest) -> List[int]:
+    def _check_failure_condition(self, query: str) -> bool:
+        current_time = time.time()
+        if current_time < self.failure_until:
+            raise RuntimeError("Service temporarily unavailable due to high query volume")
+        while (self.query_history and 
+               current_time - self.query_history[0]["timestamp"] > self.WINDOW_SECONDS):
+            self.query_history.popleft()
+        self.query_history.append({"query":query, "timestamp":current_time })
+        unique_queries = len(set(record["query"] for record in self.query_history))
+
+        if unique_queries > self.QUERY_THRESHOLD:
+            self.failure_until = current_time + self.FAILURE_DURATION
+            raise RuntimeError("Service temporarily unavailable due to high query volume")
+
+
+    def get_recommendations(self, _: Dict, request: RecsRequest) -> List[int]:
         q = {}
         q["n_results"] = ( request.limit )
         q["query_texts"] = [request.query]
         results = self.collection.query(**q)
         all_ids = [int(id) for id in results["ids"][0]]
+        if self.recs_demo_failure:
+            self._check_failure_condition(request.query)
         return all_ids[: request.limit]
-
-
-    def get_recommendations(self, headers: Dict, request: RecsRequest) -> List[int]:
-        username = headers.get("x-username", "")
-        key = f"{username}_{request.query}"
-        cached = self.cache.get(key)
-        if cached:
-            return cached
-        result = self.get_recommendations_uncached(request)
-        self.cache.put(key, result)
-        return result
-    

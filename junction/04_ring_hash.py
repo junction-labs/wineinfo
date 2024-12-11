@@ -1,6 +1,4 @@
-""" """
 import os, sys
-from typing import List
 sys.path.append(
     os.path.abspath(
         os.path.join(os.path.dirname(__file__), os.path.pardir)
@@ -8,15 +6,12 @@ sys.path.append(
 )
 import junction
 from utils import kubectl_apply
-from junction.config import Target
 
-recs: Target = {
-    "name": "wineinfo-recs",
-    "namespace": "default",
-}
+recs = junction.config.ServiceKube(type="kube", name="wineinfo-recs", namespace="default")
+
 backend: junction.config.Backend = [
     {
-        "id": recs,
+        "id": {**recs, "port": 80},
         "lb": {
             "type": "RingHash",
             "minRingSize": 1024,

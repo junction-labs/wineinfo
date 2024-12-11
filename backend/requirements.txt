@@ -3,4 +3,4 @@ pydantic-settings
 uvicorn
 whoosh
 chromadb
-junction-python
+junction-python>=0.2
