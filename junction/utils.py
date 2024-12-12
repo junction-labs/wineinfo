@@ -31,3 +31,24 @@ def kubectl_apply(*manifests):
                     f.name,
                 ]
             )
+
+def kubectl_patch(*manifests):
+    """
+    Run kubectl patch on each manifest individually.
+
+    Shells out to kubectl and uses your current Kube context.
+    """
+    for manifest in manifests:
+        with tempfile.NamedTemporaryFile(mode="w") as f:
+            f.write(manifest)
+            f.seek(0)
+            subprocess.run(
+                [
+                    "kubectl",
+                    "patch",
+                    "-f",
+                    f.name,
+                    "--patch-file",
+                    f.name,
+                ]
+            )

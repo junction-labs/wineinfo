@@ -11,6 +11,7 @@ from backend.app.services.service_api import RemoteSearchService
 search = junction.config.ServiceKube(type="kube", name="wineinfo-search", namespace="default")
 
 route: junction.config.Route = {
+    "id": service_hostname(search).replace(".", "-"),
     "hostnames": [ service_hostname(search) ],
     "rules": [
         {
@@ -19,7 +20,7 @@ route: junction.config.Route = {
             "retry": junction.config.RouteRetry(
                 attempts=5, backoff=0.1
             ),
-            "backends": [ { **search, "port": 80 } ],
+            "backends": [ { **search, "port": 80 } ],       
         },
         {
             "backends": [ { **search, "port": 80 } ],

@@ -1,7 +1,8 @@
 # Ring Hash
 
 Junction implements a consistent hashing algorithm called RingHash, allowing you
-to consistently send traffic to the same place as you scale up and down.
+to consistently send a shard of traffic to the same pod as you scale up and
+down.
 
 To enable this demo, reconfigure Kubernetes with:
 ```bash
@@ -28,18 +29,18 @@ if in a sliding window of the last 2 seconds you see more than 5 different queri
 
 To see this failure in action, we could play with many browser tabs. However it
 is easier to hit our backend APIs directly. This python program spins up 10
-threads, each doing a different query against hitting
-`http://localhost:8011/wines/recommendations?query=`, generating a new request
-at most every second. i.e. Loading our service with 10 requests per second.
+threads, each hitting `http://localhost:8011/wines/recommendations?query=` with
+their own query, generating a new request at most every second.
 
 
-Run it with `python junction/generate-reqs-requests.py --duration 3`.  You
-should see something like this:
+Run it with `python junction/04_generator.py --duration 10`.  You should see
+something like this:
 
 ```bash
-$ python junction/generate-reqs-requests.py --duration 3
-time: 0.5, thread: 1, query: foo, response-time: 0.1, response_code: 200
-FIXMEFIXME
+$ python junction/04_generator.py --duration 10
+Response Codes:
+  200: 10
+  500: 100
 ```
 
 You see pretty quickly that the server goes into failure mode. The natural tools
@@ -54,61 +55,91 @@ kubectl scale --replicas=3 deployment/wineinfo-recs
 So should everything be better? Lets find out.
 
 ```bash
-$ python junction/generate-reqs-requests.py --duration 3
-time: 0.5, thread: 1, query: foo, response-time: 0.1, response_code: 200
-FIXMEFIXME
+$ python junction/04_generator.py --duration 10
+Response Codes:
+  200: 41
+  500: 69
 ```
 
-What we see is, as we are still spraying queries between servers, we still have
-the same problem. To address the issue without throwing even more capacity at
-it, we need to route based on the query.
+If we look at a log from one of the pods, and do some command line-fu, we see
+the expected problem that every single pod is seeing the whole set of queries:
+
+```bash
+$ kubectl logs deployment/wineinfo-recs --tail=1000 | grep GET | cut -c 38- | sort | uniq -c
+Found 3 pods, using pod/wineinfo-recs-7567f698cf-98lf4
+   8 /recommendations/?query=0&limit=10
+   2 /recommendations/?query=1&limit=10
+   2 /recommendations/?query=2&limit=10
+   3 /recommendations/?query=3&limit=10
+   1 /recommendations/?query=4&limit=10
+   2 /recommendations/?query=5&limit=10
+   2 /recommendations/?query=6&limit=10
+   3 /recommendations/?query=7&limit=10
+   2 /recommendations/?query=8&limit=10
+```
 
 ## Fixing the issue with Junction 
 
-In Junction, the load balancing algorithm is set on the backend. 
+To address the issue without throwing even more capacity at it, we need to route
+based on the query. In Junction, the load balancing algorithm is set on the
+backend, as follows: 
 
 ```python
-recs_url = "http://wineinfo-recs.default.svc.cluster.local"
+recs = junction.config.ServiceKube(type="kube", name="wineinfo-recs", namespace="default")
 
 backend: junction.config.Backend = [
     {
-        "id": jct_backend(recs_url),
+        "id": {**recs, "port": 80},
         "lb": {
             "type": "RingHash",
             "minRingSize": 1024,
-            "hashParams": [{"type": "Header", "name": "x-username"}],
+            "hashParams": [{"type": "QueryParam", "name": "query"}],
         },
     }
 ]
 ```
 
-Install it by running `python junction/generate-reqs-requests.py`. 
+Install it by running `python junction/04_ring_hash.py`. You should see
+something like:
+
+```bash
+$ python ./junction/04_ring_hash.py
+service/wineinfo-recs patched
+```
 
 Now, has this fixed things? Lets try with:
 
 ```bash
-$ python junction/generate-reqs-requests.py --duration 3
-time: 0.5, thread: 1, query: foo, response-time: 0.1, response_code: 200
-FIXMEFIXME
+$ python junction/04_generator.py --duration 10
+Response Codes:
+  200: 110
 ```
 
-No more failures. 
+No more failures. Looking at one of the pods query logs, we can now see it only
+gets a subset of the queries:
+
+```bash
+$ kubectl logs deployment/wineinfo-recs --tail=30 | grep GET | cut -c 38- | sort | uniq -c
+   4  /recommendations/?query=1&limit=10
+   4  /recommendations/?query=2&limit=10
+   3  /recommendations/?query=6&limit=10
+   4  /recommendations/?query=9&limit=10
+```
 
 ## Whats going on
-
-First thing is its on the backend
-
-Second thing is consistent hashing itself.
 
 We all know about sharding, which is taking some parameter of a request, running
 it through a hash function, and then using that to choose consistently across N
 backends. Unfortunately sharding has 2 problems:
 - the first, is now you have that hashing code to maintain in all of your
   clients
-- even if you work out how to load the number N dynamically, changing it is hard
- as instantaneously every request goes to a completely new host.
+- even if you work out how to load the number N dynamically, scaling up is hard
+  as changing the value means instantaneously every request goes to a completely
+  new host.
 
-Enter consistent hashing. 
+Junction in general solves the first problem, and the ring has algorithm solves
+the second. For a full writeup, see
+https://en.wikipedia.org/wiki/Consistent_hashing.
 
 ## Cleaning up
 
@@ -116,5 +147,6 @@ To roll back this demo and leave wineinfo in working order for the next one,
 run: 
 
 ```bash
+kubectl delete -f deploy/wineinfo.yaml
 kubectl apply -f deploy/wineinfo.yaml
 ```

@@ -26,6 +26,6 @@ spec:
         - configMapRef:
             name: wineinfo-backend-config
         env:
-        - name: CATALOG_DEMO_MOJIBAKE
+        - name: RECS_DEMO_FAILURE
           value: "true"
             

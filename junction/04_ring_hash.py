@@ -5,19 +5,17 @@ sys.path.append(
     )
 )
 import junction
-from utils import kubectl_apply
+from utils import kubectl_patch
 
 recs = junction.config.ServiceKube(type="kube", name="wineinfo-recs", namespace="default")
 
-backend: junction.config.Backend = [
-    {
-        "id": {**recs, "port": 80},
-        "lb": {
-            "type": "RingHash",
-            "minRingSize": 1024,
-            "hashParams": [{"type": "Header", "name": "x-username"}],
-        },
-    }
-]
+backend: junction.config.Backend = {
+    "id": {**recs, "port": 80},
+    "lb": {
+        "type": "RingHash",
+        "minRingSize": 1024,
+        "hashParams": [{"type": "QueryParam", "name": "query"}],
+    },
+}
 
-kubectl_apply(junction.dump_kube_backend(backend))
+kubectl_patch(junction.dump_kube_backend(backend))

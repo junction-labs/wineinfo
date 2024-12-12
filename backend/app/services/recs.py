@@ -19,12 +19,17 @@ class RecsServiceImpl(RecsService):
         self.collection = self.chroma_client.get_or_create_collection(
             name="my_collection"
         )
+        # it seems like chroma does not load any data until the first query is
+        # made, causing unacceptable latency for it. Lets do a single call on
+        # initialization to avoid it.
+        self.collection.query(n_results=1, query_texts=["dummy"])
+
         # Initialize failure simulation components
         self.query_history: Deque[Dict] = deque()
         self.failure_until: float = 0
         self.WINDOW_SECONDS = 2
         self.QUERY_THRESHOLD = 5
-        self.FAILURE_DURATION = 5        
+        self.FAILURE_DURATION = 5    
    
     def open_index(self):
         self.batch_ids = []

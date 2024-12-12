@@ -58,7 +58,6 @@ def make_request(url: str, start_time: float, period: float, stop_event: threadi
 
 
 def print_final_stats(stats: Stats):
-    print("\nFinal Statistics:")
     print("Response Codes:")
     for code, count in sorted(stats.response_codes.items()):
         print(f"  {code}: {count}")
@@ -66,9 +65,9 @@ def print_final_stats(stats: Stats):
         print(f"Total Errors: {stats.error_count}")
 
 
-def main(duration_seconds: Optional[int] = None, period: float = 1.0, verbose: bool = False):
+def main(duration_seconds: Optional[int], period: int, verbose: bool):
     urls = [
-        f"http://localhost:8000/wines/recommendations?query={i}" for i in range(10)
+        f"http://localhost:8011/wines/recommendations?query={i}" for i in range(10)
     ]
     
     start_time = time.time()
@@ -90,13 +89,13 @@ def main(duration_seconds: Optional[int] = None, period: float = 1.0, verbose: b
             pass
         finally:
             stop_event.set()
-            concurrent.futures.wait(futures, timeout=1)
+            concurrent.futures.wait(futures, timeout=5)
             print_final_stats(stats)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run rate-limited parallel HTTP requests')
     parser.add_argument('--duration', type=int, help='Duration to run in seconds', default=None)
-    parser.add_argument('--period', type=float, help='Time between requests in seconds', default=1.0)
+    parser.add_argument('--period', type=float, help='Time between requests in seconds', default=1)
     parser.add_argument('--verbose', action='store_true', help='Print detailed per-request results')
     args = parser.parse_args()
     main(args.duration, args.period, args.verbose)

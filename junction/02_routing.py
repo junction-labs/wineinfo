@@ -7,7 +7,7 @@ catalog_next = junction.config.ServiceKube(type="kube", name="wineinfo-catalog-n
 is_admin = junction.config.RouteMatch(headers = [{"name": "x-username", "value": "admin"}])
 
 route: junction.config.Route = {
-    "id": "catalog",
+    "id": service_hostname(catalog).replace(".", "-"),
     "hostnames": [ service_hostname(catalog) ],
     "rules": [
         {
@@ -26,7 +26,6 @@ route: junction.config.Route = {
     url="http://" + service_hostname(catalog) + "/",
     headers={},
 )
-
 assert rule_idx == len(route["rules"]) - 1
 assert backend == { **catalog, "port": 80 }
 
@@ -38,7 +37,5 @@ assert backend == { **catalog, "port": 80 }
 )
 assert rule_idx == 0
 assert backend == { **catalog_next, "port": 80 }
-
-print(junction.dump_kube_route(route=route, namespace="default"))
 
 kubectl_apply(junction.dump_kube_route(route=route, namespace="default"))
