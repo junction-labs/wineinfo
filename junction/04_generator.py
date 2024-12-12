@@ -1,11 +1,14 @@
-import concurrent.futures
 import requests
 import time
 import argparse
-from typing import Optional
 import threading
+
+from typing import Optional
 from collections import Counter
 from dataclasses import dataclass, field
+from concurrent.futures import ThreadPoolExecutor, wait
+
+import yaspin
 
 
 @dataclass
@@ -14,11 +17,25 @@ class Stats:
     error_count: int = 0
     lock: threading.Lock = field(default_factory=threading.Lock)
 
+    def count_response(self, status_code: int):
+        with self.lock:
+            self.response_codes[status_code] += 1
 
-def make_request(url: str, start_time: float, period: float, stop_event: threading.Event, 
-                stats: Stats, verbose: bool):
+    def count_error(self):
+        with self.lock:
+            self.error_count += 1
+
+
+def make_request(
+    url: str,
+    start_time: float,
+    period: float,
+    stop_event: threading.Event,
+    stats: Stats,
+    verbose: bool,
+):
     next_request_time = time.time()
-    
+
     while not stop_event.is_set():
         scheduled_time = next_request_time
         now = time.time()
@@ -26,13 +43,12 @@ def make_request(url: str, start_time: float, period: float, stop_event: threadi
             remaining = scheduled_time - now
             if stop_event.wait(timeout=remaining):
                 break
-        
+
         try:
             actual_start = time.time()
             response = requests.get(url)
 
-            with stats.lock:
-                stats.response_codes[response.status_code] += 1
+            stats.count_response(status_code=response.status_code)
 
             if verbose:
                 end_time = time.time()
@@ -43,17 +59,14 @@ def make_request(url: str, start_time: float, period: float, stop_event: threadi
                     f"query: {url}, response_time: {response_time}, "
                     f"response_code: {response.status_code}"
                 )
-                
+
         except Exception as e:
-            with stats.lock:
-                stats.error_count += 1
-                
+            stats.count_error()
+
             if verbose and not stop_event.is_set():
                 relative_time = round(scheduled_time - start_time, 3)
-                print(
-                    f"time: {relative_time}, query: {url}, error: {str(e)}"
-                )
-        
+                print(f"time: {relative_time}, query: {url}, error: {str(e)}")
+
         next_request_time = scheduled_time + period
 
 
@@ -66,36 +79,64 @@ def print_final_stats(stats: Stats):
 
 
 def main(duration_seconds: Optional[int], period: int, verbose: bool):
-    urls = [
-        f"http://localhost:8011/wines/recommendations?query={i}" for i in range(10)
+    queries = [
+        "red",
+        "white",
+        "rose",
+        "pinot noir",
+        "france",
+        "italy",
+        "germany",
+        "greece",
+        "australia",
+        "portugal",
     ]
-    
+    urls = [f"http://localhost:8011/wines/recommendations?query={q}" for q in queries]
+
     start_time = time.time()
     stop_event = threading.Event()
     stats = Stats()
-    
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        futures = [
-            executor.submit(make_request, urls[i], start_time, period, stop_event, stats, verbose)
-            for i in range(len(urls))
-        ]
-        
-        try:
-            if duration_seconds:
-                time.sleep(duration_seconds)
-            else:
-                concurrent.futures.wait(futures)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            stop_event.set()
-            concurrent.futures.wait(futures, timeout=5)
-            print_final_stats(stats)
+
+    with yaspin.kbi_safe_yaspin(timer=True, text="making recommendations requests..."):
+        with ThreadPoolExecutor(max_workers=len(urls)) as executor:
+            futures = [
+                executor.submit(
+                    make_request,
+                    urls[i],
+                    start_time,
+                    period,
+                    stop_event,
+                    stats,
+                    verbose,
+                )
+                for i in range(len(urls))
+            ]
+
+            try:
+                if duration_seconds:
+                    time.sleep(duration_seconds)
+                else:
+                    wait(futures)
+            except KeyboardInterrupt:
+                pass
+            finally:
+                stop_event.set()
+                wait(futures, timeout=5)
+    print_final_stats(stats)
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run rate-limited parallel HTTP requests')
-    parser.add_argument('--duration', type=int, help='Duration to run in seconds', default=None)
-    parser.add_argument('--period', type=float, help='Time between requests in seconds', default=1)
-    parser.add_argument('--verbose', action='store_true', help='Print detailed per-request results')
+    parser = argparse.ArgumentParser(
+        description="Run rate-limited parallel HTTP requests"
+    )
+    parser.add_argument(
+        "--duration", type=int, help="Duration to run in seconds", default=None
+    )
+    parser.add_argument(
+        "--period", type=float, help="Time between requests in seconds", default=1
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Print detailed per-request results"
+    )
     args = parser.parse_args()
     main(args.duration, args.period, args.verbose)

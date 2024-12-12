@@ -1,144 +1,132 @@
 # Simple Routing
 
-Routes are one of the most fundamental building blocks in Junction. They give
-you control over where clients send traffic based on the contents of a request.
-In this demo we use routing to show a release candidate to a selected audience.
+The WineInfo catalog team has just done a huge rewrite of the catalog service
+and moved all the catalog data from PineScaleDB to to ElasticRiak. In YOLO mode,
+they rolled it into production without any testing or QA. Simulate their deploy
+by upgrading the catalog yourself by deploying the new version of the catalog to
+Kubernetes.
 
-To enable this demo, reconfigure Kubernetes with:
 ```bash
 kubectl apply -f deploy/02_routing.yaml
 ```
 
-> [!NOTE]
->
-> All of the code for this example is in
-> [02_routing](../junction/02_routing.py).
+As soon as the upgrade upgrade lands, bug reports start rolling in. Uh oh. If
+you look at the UI, you should now see something like this:
 
-## Background
+![mojibake-homepage](./images/mojibake-search.jpg)
 
-The WineInfo catalog team has just done a huge rewrite of the catalog service
-and moved all the catalog data from PineScaleDB to to ElasticRiak. In YOLO mode,
-they rolled it into production. But now we are hearing bug reports from
-customers in Europe about character encoding.
+Looks like they got [character encoding wrong](https://en.wikipedia.org/wiki/Mojibake)!
 
-In the UI, try searching for "germany". You should see something like:
+The catalog team already has a fix ready, but this time you want site admins to
+quickly QA it before they do another rollout.
 
-![mojibake-homepage](./images/mojibake-search.jpg) FIXME
+We can do this easily with Junction! Since all of our Services are using the
+Junction client, it's easy to deploy a Junction Route that will show all
+site admins the fixed version of the catalog service to verify that we have
+un-YOLOd our encoding problems.
 
-Looks like they got the character encoding wrong! The team prepares a fix, but
-this time you want to test its rendering catalog data correctly in production,
-before all customers are exposed to it, by just routing the "admin" users to the
-release candidate service. 
-
-## Fixing the issue with Junction 
-
-Junction needs to route requests for the "admin" user to the release candidate
-service named catalog-next. This is the Junction configuration to do so:
-
-```python
-catalog = junction.config.ServiceKube(type="kube", name="wineinfo-catalog", namespace="default")
-catalog_next = junction.config.ServiceKube(type="kube", name="wineinfo-catalog-next", namespace="default")
-is_admin = junction.config.RouteMatch(headers = [{"name": "x-username", "value": "admin"}])
-
-route: junction.config.Route = {
-    "id": service_hostname(catalog).replace(".", "-"),
-    "hostnames": [ service_hostname(catalog) ],
-    "rules": [
-        {
-            "matches": [is_admin],
-            "backends": [{ **catalog_next, "port": 80 }],
-        },
-        {
-            "backends": [{ **catalog, "port": 80 }],
-        },
-    ],
-}
-
-kubectl_apply(junction.dump_kube_route(route=route, namespace="default"))
-```
-
-To see it in action, activate the virtualenv you created while setting up
-WineInfo, and run `python ./junction/02_routing.py`. You should see:
+Let's set up a Junction Route to do that.
 
 ```bash
 $ python ./junction/02_routing.py
 httproute.gateway.networking.k8s.io/wineinfo-catalog-default-svc-cluster-local created
 ```
 
-Now go to the UI again, and you should see while other customers are still
-seeing the bad data, if you switch to admin, you do indeed see that things are
-fixed.
+Once you deploy the route, switch to the "admin" view in the UI and make sure you
+don't see any more character encoding issues.
 
-![mojibake-homepage](./images/mojibake-search.jpg) FIXME
+![normal-homepage](./images/homepage.jpg)
 
-Hooray! We are now happy to deploy this more broadly.
+Hooray! We are now happy to deploy their fix to prod.
 
-## Whats going on
+## What Just Happened?
 
-### Kube setup
-
-Like we mentioned in the introduction, WineInfo is deployed as microservices on
-Kubernetes. If we check out the WineInfo cluster we can see a Service and a
-Deployment for the catalog service. It's called `wineinfo-catalog`.
+When the Catalog team deployed their fix, they deployed it as a second
+Kubernetes Service.
 
 ```bash
-$ kubectl get svc/wineinfo-catalog
-NAME                       TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
-service/wineinfo-catalog   ClusterIP   10.43.180.24   <none>        80/TCP    11m
-$ kubectl get deployment/wineinfo-catalog
-NAME               READY   UP-TO-DATE   AVAILABLE   AGE
-wineinfo-catalog   1/1     1            1           90m
-```
-
-We can also see the release candidate that has the fix. It's called
-`wineinfo-catalog-next`.
-
-```bash
-$ kubectl get svc/wineinfo-catalog-next
+ $ kubectl get svc/wineinfo-catalog svc/wineinfo-catalog-next
 NAME                    TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
-wineinfo-catalog-next   ClusterIP   10.43.139.203   <none>        80/TCP    10m
-$ kubectl get deploy/wineinfo-catalog-next
-NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
-wineinfo-catalog-next   1/1     1            1           10m
+wineinfo-catalog        ClusterIP   10.43.4.131     <none>        80/TCP    15m
+wineinfo-catalog-next   ClusterIP   10.43.118.111   <none>        80/TCP    14m
 ```
 
-### Routes
+We then used a Junction Route to route requests for `wineinfo-catalog` to
+`wineinfo-catalog-next`, but only when the requester is logged in as an admin.
 
-To start moving traffic around with Junction, we need a Route. A Route can match
-on URL paths, headers or query parameters, and configure specific behavior.
+Our architechture diagram momentarily looked like this:
 
-Here's the whole Route again, before we walk through it bit-by-bit.
+```text
+                                          ┌─────────────┐
+                                          │  Frontend   │
+                                          └─────┬───────┘
+               x-username: admin          ┌─────┴───────┐
+             ┌────────────────────────────┤   Backend   ├──────────────┐
+             │                            └─────┬───────┘              │
+             │                 ┌────────────────┼────────────────┐     │
+      ┌──────┴──────┐   ┌──────┴──────┐   ┌─────┴───────┐   ┌────┴───┐ │
+      │ Catalog-Next│   │   Catalog   │   │   Search    │   │  Recs  │ │
+      └─────────────┘   └──────┬──────┘   └─────┬───────┘   └────┬───┘ │
+                               └────────────────┼────────────────┘     │
+                                                │                      │
+                                           ┌────┴──────┐               │
+                                           │  Persist  ├───────────────┘
+                                           └───────────┘
+```
+
+Routes are one of the most fundamental building blocks in Junction. They give
+you the ability to apply rules to every outgoing HTTP request based on its
+contents. Here's the complete Route we set up to redirect admin requests to the
+catalog-next service:
 
 ```python
-catalog = junction.config.ServiceKube(type="kube", name="wineinfo-catalog", namespace="default")
-catalog_next = junction.config.ServiceKube(type="kube", name="wineinfo-catalog-next", namespace="default")
-is_admin = junction.config.RouteMatch(headers = [{"name": "x-username", "value": "admin"}])
+catalog: config.Service = {
+    "type": "kube",
+    "name": "wineinfo-catalog",
+    "namespace": "default",
+}
+catalog_next: config.Service = {
+    "type": "kube",
+    "name": "wineinfo-catalog-next",
+    "namespace": "default",
+}
 
-route: junction.config.Route = {
-    "id": service_hostname(catalog).replace(".", "-"),
-    "hostnames": [ service_hostname(catalog) ],
+is_admin = config.RouteMatch(headers=[{"name": "x-username", "value": "admin"}])
+
+route: config.Route = {
+    "id": "wineinfo-catalog",
+    "hostnames": [service_hostname(catalog)],
     "rules": [
         {
             "matches": [is_admin],
-            "backends": [{ **catalog_next, "port": 80 }],
+            "backends": [{**catalog_next, "port": 80}],
         },
         {
-            "backends": [{ **catalog, "port": 80 }],
+            "backends": [{**catalog, "port": 80}],
         },
     ],
 }
 ```
 
-One thing we see here, is routes first match the hostname passed in a HTTP
-request. In this case the name for the hostname is the same as the name for the
-catalog service. But any particular hostname would work. Routes also are
-allowed, but not required - to specify a list of ports. Here, we want this route
-to apply for all requests, no matter what port they're using, so we omit the
-port.
+A Route has mutlipple parts we'll dissect in detail. The whole point of a Route
+is to match outgoing HTTP requests and then decide which Backend they should hit.
 
-### RouteRules
+### Matching Hostnames
 
-Every Route has a set of `RouteRules` to match traffic within them.  
+The first part of this Route describes which hostnames to match.
+
+```python
+    "hostnames": [ service_hostname(catalog) ],
+```
+
+Hostnames are special, so they're matched first - they're how you communicate
+your intent about where a request should go. The hostname we're using this
+time happens to be one we're computing from the name of the `catalog` service,
+but it could be any hostname you'd like.
+
+### Matching Rules
+
+Every Route has a set of `RouteRules` to match traffic within them.
 RouteRules have a set of matches, and if any of them match an outgoing request,
 it's sent to one of the backends listed as part of the route.
 
@@ -179,27 +167,29 @@ requests or and to make our applications a more resilient to failure.
 
 ### Backend Services
 
+Both of those rules have Backends, which describe where to send traffic once
+the rules match.
+
 Junction supports two types of Backend services. The first is where the IP's are
 looked up in DNS in the client. The second is where the IP's are pulled from
 Kubernetes and sent down to the client directly. For services in Kubernetes, the
-second is the recommended option, but junction wants to give full control to
-configure either behavior.
+second is the recommended option, so that's what we're using here, but Junction
+wants to give you the control to configure either behavior.
 
-If we for some reason wanted to flip to DNS lookups of the IPs, we could change
-the behavior with:
-
-```python
-catalog = junction.config.ServiceDns(type="dns", hostname="wineinfo-catalog.default.svc.cluster.local")
-catalog_next = junction.config.ServiceDns(type="dns", hostname="wineinfo-catalog-next.default.svc.cluster.local")
-```
-
-Note that unlike routes, backends require a port. That is because we need to
-know where to send the traffic.
+You can list multiple backends for a rule, and Junction will distribute traffic
+evenly between them. If you list no backends for a rule, Junction will
+immediately return an error for any matching request, before it even hits the
+network.
 
 ## Unit Testing
 
-Because a Route is just data, and Junction runs client-side, we can test our
-Route without actually making HTTP requests or talking to a control plane.
+Why were we so confident that we could quickly preview traffic to our new
+version of the catalog? Because we could unit-test our changes before shipping
+them!
+
+A Route is just data, and Junction runs client-side, so we can test that our
+Route does what we expect without actually making HTTP requests or talking to
+the Junction control plane.
 
 Calling `junction.check_route` with a list of Routes returns the Route that we
 matched to make sure we got the hostname right, the index of the rule that
@@ -218,6 +208,7 @@ assert backend == { **catalog, "port": 80 }
 ```
 
 This double checks that:
+
 - The rule that matched is the last rule in our route.
 - The backend is also the `catalog` service listening on port 80.
 
@@ -236,32 +227,20 @@ assert backend == { **catalog_next, "port": 80 }
 ```
 
 Here we check:
+
 - The first rule should match, not the last rule.
 - The backend should be the `catalog-next` service.
 
 Nice! All of our unit tests pass, so we can deploy our route with confidence.
 
-## Running in production
-
-Within the script the command that does the deployment is:
-
-```
-kubectl_apply(junction.dump_kube_route(route))
-```
-
-Here we see the `dump_kube_route` method, which emits a API Gateway HTTPRoute
-configuration for our Junction config. `kubectl_apply` just calls kubectl to apply
-the config, installing it on the cluster, so that `ezbake` can pick it up and 
-feed it to all the junction clients.
-
-## Cleaning up
+## Cleaning up and Trying Again
 
 To roll back this demo and leave the application in working order for the next
-demo, run: 
+demo, run:
 
 ```bash
-kubectl delete httproute.gateway.networking.k8s.io/wineinfo-catalog-default-svc-cluster-local
+kubectl delete httproute.gateway.networking.k8s.io/wineinfo-catalog
 kubectl apply -f deploy/wineinfo.yaml
 ```
 
-Next, head on over to [03_retries.md](03_retries.md).
+When you're done, head on over to [03_retries.md](03_retries.md).

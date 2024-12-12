@@ -13,32 +13,40 @@ The demo cluster you just set up contains two high-level things; a WineInfo
 website built with a handful of microservices and a Junction control plane
 that's distributing config to all of the clients in the cluster.
 
-The WineInfo site is built for 2024, and contains a Big data catalog service, a
-semantic search service, a recommendations (recs) service, and a persistent
-store based on sqlite. All of those services are tied together with an API
-service that serves up a React frontend.
+The WineInfo site is built for 2024, so of course our informational wine
+website includes microservices and vector search.
+
+The site is made up of a Big Data catalog service, a semantic search service, a
+recommendations (recs) service, and a persistent store based on sqlite. All of
+those services are tied together with an API service that serves up a React
+frontend.
 
 ```text
-                   ┌─────────────┐                
-                   │  Frontend   │                
-                   └─────┬───────┘                
-                   ┌─────┴───────┐                
-                   │   Backend   ├──────────────┐ 
-                   └─────┬───────┘              │ 
-        ┌────────────────┼────────────────┐     │ 
- ┌──────┴──────┐   ┌─────┴───────┐   ┌────┴───┐ │ 
- │   Catalog   │   │   Search    │   │  Recs  │ │ 
- └──────┬──────┘   └─────┬───────┘   └────┬───┘ │ 
-        └────────────────┼────────────────┘     │ 
-                         │                      │ 
-                    ┌────┴──────┐               │ 
-                    │  Persist  ├───────────────┘ 
-                    └───────────┘                 
+                   ┌─────────────┐
+                   │  Frontend   │
+                   └─────┬───────┘
+                   ┌─────┴───────┐
+                   │   Backend   ├──────────────┐
+                   └─────┬───────┘              │
+        ┌────────────────┼────────────────┐     │
+ ┌──────┴──────┐   ┌─────┴───────┐   ┌────┴───┐ │
+ │   Catalog   │   │   Search    │   │  Recs  │ │
+ └──────┬──────┘   └─────┬───────┘   └────┬───┘ │
+        └────────────────┼────────────────┘     │
+                         │                      │
+                    ┌────┴──────┐               │
+                    │  Persist  ├───────────────┘
+                    └───────────┘
 ```
 
 To introduce Junction, we're going to walk through some common tasks you might
-have as the WineInfo becomes a successful and growing product organization.
+have as the WineInfo becomes a successful and growing product and organization.
 We'll deal with traffic routing to test new features, adding retries to deal
 with reliability issues, sharding a service, and more.
+
+All of our Wineinfo microservices are written in Python, so this entire demo
+is written in Python just to stay consistent. Keep in mind as you're reading
+that any of these services or any of this configuration could be done in any
+language supported by Junction - there's nothing Python specific about it.
 
 To start, head on over to [02_routing.md](02_routing.md).

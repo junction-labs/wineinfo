@@ -69,6 +69,3 @@ docs/_build/
 
 # Pyenv
 .python-version
-
-# generated data
-data/gen

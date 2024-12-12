@@ -2,9 +2,10 @@ import tempfile
 import subprocess
 import junction
 
+
 def service_hostname(service: junction.config.Service) -> str:
     """
-    Returns the hostname for a junction Service, to be used in 
+    Returns the hostname for a junction Service, to be used in
     route matching for it.
     """
     if service["type"].lower == "dns":
@@ -31,6 +32,7 @@ def kubectl_apply(*manifests):
                     f.name,
                 ]
             )
+
 
 def kubectl_patch(*manifests):
     """

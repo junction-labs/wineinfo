@@ -1,20 +1,20 @@
-import os, sys
-sys.path.append(
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), os.path.pardir)
-    )
-)
 import junction
+import junction.config as config
+
 from utils import kubectl_patch
 
-recs = junction.config.ServiceKube(type="kube", name="wineinfo-recs", namespace="default")
+recs: config.Service = {
+    "type": "kube",
+    "name": "wineinfo-recs",
+    "namespace": "default",
+}
 
-backend: junction.config.Backend = {
+backend: config.Backend = {
     "id": {**recs, "port": 80},
     "lb": {
         "type": "RingHash",
-        "minRingSize": 1024,
-        "hashParams": [{"type": "QueryParam", "name": "query"}],
+        "min_ring_size": 1024,
+        "hash_params": [{"type": "QueryParam", "name": "query"}],
     },
 }
 

@@ -4,3 +4,4 @@ uvicorn
 whoosh
 chromadb
 junction-python>=0.2
+yaspin
