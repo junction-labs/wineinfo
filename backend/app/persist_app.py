@@ -1,8 +1,8 @@
 from typing import List, Tuple
 from fastapi import FastAPI, Request
 
-from .persist import PersistServiceImpl
-from .service_api import RemotePersistService, SQLRequest, ServiceSettings, get_fwd_headers
+from .services.persist import PersistServiceImpl
+from .services.service_api import RemotePersistService, SQLRequest, ServiceSettings, get_fwd_headers
 
 app = FastAPI()
 service = PersistServiceImpl(ServiceSettings())

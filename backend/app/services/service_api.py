@@ -13,8 +13,9 @@ class ServiceSettings(BaseSettings):
     persist_service: str = "http://localhost:8004"
     use_junction: bool = False
     data_path: str = "backend/data/gen"
-    mojibake: bool = False
-
+    catalog_demo_mojibake: bool = False
+    search_demo_latency: bool = False
+    recs_demo_failure: bool = False
 
 
 def get_fwd_headers(request: Request):

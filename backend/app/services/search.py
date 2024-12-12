@@ -6,9 +6,7 @@ from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, TEXT, ID, NUMERIC
 from whoosh.qparser import MultifieldParser
 
-from .feature_flags import FeatureFlags
-from .service_api import HttpCaller, RemotePersistService, SearchRequest, SearchService, ServiceSettings
-from .catalog import PaginatedList, Wine
+from .service_api import SearchRequest, SearchService, ServiceSettings, PaginatedList, Wine
 import time
 
 
@@ -27,9 +25,7 @@ class SearchServiceImpl(SearchService):
             points=NUMERIC(stored=True),
             price=NUMERIC(stored=True),
         )
-        self.settings = settings
-        persist_service = RemotePersistService(HttpCaller(settings.persist_service, settings))
-        self.feature_flags = FeatureFlags(persist_service)
+        self.search_demo_latency = settings.search_demo_latency
         path = os.path.join(settings.data_path, "search_data")
         if reset and os.path.exists(path):
             shutil.rmtree(path)
@@ -65,9 +61,9 @@ class SearchServiceImpl(SearchService):
 
     def search(self, headers: Dict, request: SearchRequest) -> PaginatedList[int]:
 
-        if self.feature_flags.get("search_simulate_latency", ""):
+        if self.search_demo_latency:
             if random.random() < 0.5:
-                time.sleep(2)
+                time.sleep(10)
 
         with self.index.searcher() as searcher:
             fields = [

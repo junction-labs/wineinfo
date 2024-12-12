@@ -109,9 +109,7 @@ const WineCatalog: React.FC = () => {
 
     const showNotification = (message: string, type: NotificationType = 'success') => {
         setNotification({ message, type });
-        if (type === 'success') {
-            setTimeout(() => setNotification(null), 3000);
-        }
+        setTimeout(() => setNotification(null), 10000);
     };
 
     const fetchData = async (page: number = 1) => {

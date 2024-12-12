@@ -51,7 +51,7 @@ metadata:
   labels:
     app: ezbake
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: ezbake
