@@ -1,23 +1,23 @@
 # Simple Routing
 
 The WineInfo catalog team has just done a huge rewrite of the catalog service
-and moved all the catalog data from PineScaleDB to to ElasticRiak. In YOLO mode,
-they rolled it into production without any testing or QA. Simulate their deploy
-by upgrading the catalog yourself by deploying the new version of the catalog to
+and moved all the catalog data from PineScaleDB to ElasticRiak. In YOLO mode,
+they rolled it into production without any testing or QA. You can simulate their deploy
+by upgrading the catalog yourself and deploying the new version of the catalog to
 Kubernetes.
 
 ```bash
 kubectl apply -f deploy/02_routing.yaml
 ```
 
-As soon as the upgrade upgrade lands, bug reports start rolling in. Uh oh. If
+As soon as the upgrade lands, bug reports will start rolling in. Uh oh. If
 you look at the UI, you should now see something like this:
 
 ![mojibake-homepage](./images/mojibake-search.jpg)
 
 Looks like they got [character encoding wrong](https://en.wikipedia.org/wiki/Mojibake)!
 
-The catalog team already has a fix ready, but this time you want site admins to
+The catalog team already has a fix ready, but this time, you want site admins to
 quickly QA it before they do another rollout.
 
 We can do this easily with Junction! Since all of our Services are using the
@@ -32,8 +32,7 @@ $ python ./junction/02_routing.py
 httproute.gateway.networking.k8s.io/wineinfo-catalog-default-svc-cluster-local created
 ```
 
-Once you deploy the route, switch to the "admin" view in the UI and make sure you
-don't see any more character encoding issues.
+Once you deploy the route, switch to the "admin" view in the UI and make sure you don't see any more character encoding issues.
 
 ![normal-homepage](./images/homepage.jpg)
 
@@ -54,7 +53,7 @@ wineinfo-catalog-next   ClusterIP   10.43.118.111   <none>        80/TCP    14m
 We then used a Junction Route to route requests for `wineinfo-catalog` to
 `wineinfo-catalog-next`, but only when the requester is logged in as an admin.
 
-Our architechture diagram momentarily looked like this:
+Our architecture diagram momentarily looked like this:
 
 ```text
                                           ┌─────────────┐
@@ -108,7 +107,7 @@ route: config.Route = {
 }
 ```
 
-A Route has mutlipple parts we'll dissect in detail. The whole point of a Route
+A Route has multiple parts we'll dissect in detail. The whole point of a Route
 is to match outgoing HTTP requests and then decide which Backend they should hit.
 
 ### Matching Hostnames
@@ -120,19 +119,18 @@ The first part of this Route describes which hostnames to match.
 ```
 
 Hostnames are special, so they're matched first - they're how you communicate
-your intent about where a request should go. The hostname we're using this
-time happens to be one we're computing from the name of the `catalog` service,
+your intent about where a request should go. This time, the hostname we're using is one we're computing from the name of the `catalog` service,
 but it could be any hostname you'd like.
 
 ### Matching Rules
 
 Every Route has a set of `RouteRules` to match traffic within them.
-RouteRules have a set of matches, and if any of them match an outgoing request,
+RouteRules have a set of matches, and if any match an outgoing request,
 it's sent to one of the backends listed as part of the route.
 
 Our goal here is to only route logged-in administrators to the new version of
-the catalog service. In our wineinfo services, when someone is logged in, we add
-the 'x-username' header to every request, and pass that along. We can use that
+the catalog service. In our Wineinfo services, when someone is logged in, we add
+the 'x-username' header to every request and pass that along. We can use that
 header to identify all traffic from WineInfo admins. To use Junction to do that,
 we'll declare a match on headers that only matches when the "x-username" header
 has exactly the value "admin".
@@ -141,7 +139,7 @@ has exactly the value "admin".
 is_admin = junction.config.RouteMatch(headers = [{"name": "x-username", "value": "admin"}])
 ```
 
-The first rule in the rules list only has one match, on `is_admin` routing to
+The first rule in the rules list only has one match on `is_admin` routing to
 the `catalog_next` service.
 
 ```python
@@ -151,7 +149,7 @@ the `catalog_next` service.
         },
 ```
 
-The second rule is a catch-all rule. It has no `matches`, which means it matches
+The second rule is a catch-all rule. It has no `matches,` which matches
 any outgoing request. When this rule matches, it sends requests to the `catalog_url`
 service.
 
@@ -163,22 +161,22 @@ service.
 
 For now, that's all there is to know about Routes. As we get further into
 exploring Junction, we'll use Routes to match on other parts of outgoing
-requests or and to make our applications a more resilient to failure.
+requests or to make our applications more resilient to failure.
 
 ### Backend Services
 
 Both of those rules have Backends, which describe where to send traffic once
 the rules match.
 
-Junction supports two types of Backend services. The first is where the IP's are
-looked up in DNS in the client. The second is where the IP's are pulled from
+Junction supports two types of Backend services. The first is where the IPs are
+looked up in the client's DNS. The second is where the IP's are pulled from
 Kubernetes and sent down to the client directly. For services in Kubernetes, the
 second is the recommended option, so that's what we're using here, but Junction
 wants to give you the control to configure either behavior.
 
 You can list multiple backends for a rule, and Junction will distribute traffic
 evenly between them. If you list no backends for a rule, Junction will
-immediately return an error for any matching request, before it even hits the
+immediately return an error for any matching request before it even hits the
 network.
 
 ## Unit Testing
@@ -193,7 +191,7 @@ the Junction control plane.
 
 Calling `junction.check_route` with a list of Routes returns the Route that we
 matched to make sure we got the hostname right, the index of the rule that
-matched so we can check on our matching logic, and the backend that requests
+matched so we can check on our matching logic and the backend that requests
 will get routed to.
 
 ```python
@@ -207,13 +205,13 @@ assert rule_idx == len(route["rules"]) - 1
 assert backend == { **catalog, "port": 80 }
 ```
 
-This double checks that:
+This double-checks that:
 
 - The rule that matched is the last rule in our route.
 - The backend is also the `catalog` service listening on port 80.
 
  Let's try again with an authenticated request. All we have to do is set our
- x-username header to the value "admin" and we're good to go.
+ x-username header to the value "admin" and we're ready.
 
 ```python
 (route, rule_idx, backend) = junction.check_route(
@@ -231,7 +229,7 @@ Here we check:
 - The first rule should match, not the last rule.
 - The backend should be the `catalog-next` service.
 
-Nice! All of our unit tests pass, so we can deploy our route with confidence.
+Nice! All of our unit tests pass so we can confidently deploy our route.
 
 ## Cleaning up and Trying Again
 
@@ -243,4 +241,4 @@ kubectl delete httproute.gateway.networking.k8s.io/wineinfo-catalog
 kubectl apply -f deploy/wineinfo.yaml
 ```
 
-When you're done, head on over to [03_retries.md](03_retries.md).
+When you're done, head over to [03_retries.md](03_retries.md).

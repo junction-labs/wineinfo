@@ -16,12 +16,12 @@ Setting this up is the hardest part of the demo:
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install --upgrade uv
-uv pip install -r backend/requirements.txt
+.venv/bin/uv pip install -r backend/requirements.txt
 ```
 
 To activate your virtualenv run `source .venv/bin/activate`.
 
-To run the wineinfo service you'll need `docker` and `kubectl` installed. This
+To run the wineinfo service, you'll need `docker` and `kubectl` installed. This
 README won't cover installing them. Once you've gotten both `docker` and
 `kubectl` set up, install `k3d` by running:
 
@@ -41,8 +41,8 @@ can start the demo:
 ./deploy/wineinfo.sh
 ```
 
-Once you're done, point your browser at <http://localhost:8010> and you should
-see the working Wineinfo site. Once you're through clicking around the site,
-head on over to [the first part of the demo](demo/01_intro.md).
+Once you're done, point your browser at <http://localhost:8010>, and you should
+see the working Wineinfo site. Once you click around the site,
+head to [the first part of the demo](demo/01_intro.md).
 
 ![A screenshot of the demo UI](./demo/images/homepage.jpg)

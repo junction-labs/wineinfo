@@ -1,10 +1,10 @@
 # Retries and Timeouts
 
-The search team has a problem, they are seeing load spikes, increasing the
-latency of queries. They have contacted their platform team, who in turn
-contacted their cloud provider. They have confirmed a widespread issue with
-cross-zone network packet loss, but have no ETA on a resolution, and say
-"timeouts and retries should mitigate address this". Unfortunately the search
+The search team needs help; they are seeing load spikes, increasing the
+latency of queries. They have contacted their platform team, who 
+contacted their cloud provider. They have confirmed a widespread 
+cross-zone network packet loss issue but have no ETA on a resolution and say
+"timeouts and retries should mitigate address this". Unfortunately, the search
 service does not have them.
 
 Simulate the load spikes by running:
@@ -17,8 +17,8 @@ To see this issue, go to `http://localhost:8010` and do some searches. You
 should be able to feel that 50% of all of your searches have terrible latency.
 
 Setting retries and timeouts is something that we are all used to doing in
-service oriented architectures, but usually it's done in static config and
-deployed as a change to a service. Junction gives service owners the ability to
+service-oriented architectures. Still, usually, it's done in static config and
+deployed as a change to a service. Junction allows service owners to
 change both without needing to do a new deployment. All we have to do is
 update a Route.
 
@@ -27,19 +27,19 @@ $ python ./junction/03_retries.py
 httproute.gateway.networking.k8s.io/wineinfo-search created
 ```
 
-Go to the UI again, and do some more searching. While timeouts/retries are not a
-perfect way of avoiding the issue with our cloud vendor, search responses should
+Go to the UI again and do some more searching. While timeouts/retries are not a
+perfect way of avoiding the issue with our cloud vendor; search responses should
 feel much better than they did before.
 
 ## What Just Happened?
 
 To quickly add retries to the search service, we added another Route. This time,
-we matched any request heading for the `search` API call on the search service and
+we matched any request heading for the `search` API call on the search service, and
 made sure it has retry and timeout settings.
 
 Because Junction is just code, we're importing parts of our application codebase
 (`RemoteSearchService.SERVICE`) so we don't have to remember what the actual
-path is, and using a helper function to generate the hostname for our Serivce.
+path is, and using a helper function to generate the hostname for our Service.
 
 ```python
 search: config.Service = {
@@ -74,11 +74,11 @@ When clients pick up this configuration change, they automatically start
 retrying failed requests without the service team having to change anything else
 about their code.
 
-In the `timeout` section, we set the policy that each individual request should
-have a timeout of 100ms. If we wanted to set a timeout for _all_ retries we
+In the `timeout` section, we set the policy that each request should
+have a timeout of 100ms. If we wanted to set a timeout for _all_ retries, we
 could do that too, but that wouldn't solve our problem here.
 
-In the `retry` section we're setting the policy that all failed requests get 5
+In the `retry` section, we're setting the policy that all failed requests get 5
 total attempts, and that we should do exponential backoff between each request
 starting at roughly 100ms.
 
@@ -88,7 +88,7 @@ on a Route.
 
 ### Unit Testing
 
-This is a more trivial case then the last, but still worth testing. First, lets
+This is a more trivial case than the last, but it is still worth testing. First, lets
 show that the path matching works, even when we specify a query string:
 
 ```python
@@ -103,7 +103,7 @@ assert rule["timeouts"]["backend_request"] == 0.1
 assert rule["retry"]["attempts"] == 5
 ```
 
-Now lets show the fallback route is not getting retries or timeouts set:
+Now let's show the fallback route is not getting retries or timeouts set:
 
 ```python
 (matched, rule_idx, backend) = junction.check_route(
@@ -119,7 +119,7 @@ assert not "retry" in rule
 
 ## Cleaning up and being Consistent
 
-To roll back this demo and leave wineinfo in working order for the next one,
+To roll back this demo and leave Wineinfo in working order for the next one,
 run:
 
 ```bash
@@ -127,4 +127,4 @@ kubectl delete httproute/wineinfo-search
 kubectl apply -f deploy/wineinfo.yaml
 ```
 
-Next head on over to [04_ring_hash.md](04_ring_hash.md).
+Next, head over to [04_ring_hash.md](04_ring_hash.md).
