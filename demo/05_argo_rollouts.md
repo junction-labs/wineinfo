@@ -51,7 +51,7 @@ You can see the rollout now installed with:
 $ kubectl argo rollouts get rollout wineinfo-catalog
 ```
 
-So at this point we are in a similar place to demo 1, character encoding is once
+So at this point we are in a similar place to the routing demo, character encoding is once
 again borked:
 
 ![mojibake-homepage](./images/mojibake-search.jpg)
@@ -59,7 +59,7 @@ again borked:
 ## Argo Rollouts to the (safe) rescue!
 
 Lets kick off the deployment of the fix. Normally we would patch in a new
-container version, in our case though we are using an environment variable to
+container version. In our case though we are using an environment variable to
 simulate the changed behavior. So lets patch it in:
 ```bash
 kubectl patch rollout wineinfo-catalog --type json -p '[{"op": "remove", "path": "/spec/template/spec/containers/0/env"}]'

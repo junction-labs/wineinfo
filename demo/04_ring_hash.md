@@ -158,9 +158,10 @@ Try looking at the Routes that exist for the catalog or search service:
 
 ```python
 import junction
+import json
 
 j = junction.Junction()
-j.resolve_routes("GET", "http://wineinfo-catalog.default.svc.cluster.local", {})
+print(json.dumps(j.resolve_route("GET", "http://wineinfo-catalog.default.svc.cluster.local", {}), indent=4))
 ```
 
 ## Cleaning Up
