@@ -1,0 +1,75 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-catalog-canary
+  namespace: default
+spec:
+  ports:
+    - port: 80
+      targetPort: 8000
+  selector:
+    app: wineinfo
+    service: catalog
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: wineinfo-catalog-http-route
+  namespace: default
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Service
+      name: wineinfo-catalog
+      namespace: default
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /  
+    backendRefs:
+    - name: wineinfo-catalog
+      kind: Service
+      port: 80
+    - name: wineinfo-catalog-canary
+      kind: Service
+      port: 80
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: wineinfo-catalog
+  namespace: default
+spec:
+  replicas: 4
+  strategy:
+    canary:
+      stableService: wineinfo-catalog
+      canaryService: wineinfo-catalog-canary
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: wineinfo-catalog-http-route
+            namespace: default
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: catalog
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: catalog
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        envFrom:
+        - configMapRef:
+            name: wineinfo-backend-config
+        env:
+        - name: CATALOG_DEMO_MOJIBAKE
+          value: "true"

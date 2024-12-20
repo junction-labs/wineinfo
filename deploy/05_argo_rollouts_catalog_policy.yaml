@@ -1,0 +1,60 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: wineinfo-catalog
+  namespace: default
+spec:
+  replicas: 4
+  strategy:
+    canary:
+      stableService: wineinfo-catalog
+      canaryService: wineinfo-catalog-canary
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: wineinfo-catalog-http-route
+            namespace: default
+            useHeaderRoutes: true
+        managedRoutes:
+          - name: argo-rollouts
+      steps:
+      - setCanaryScale:
+          replicas: 1
+      - setHeaderRoute:
+          name: "argo-rollouts"
+          match:
+          - headerName: x-username
+            headerValue:
+              exact: admin
+      - pause: {}
+      - setCanaryScale:
+          matchTrafficWeight: true
+      - setHeaderRoute:
+          name: "argo-rollouts"
+      - setWeight: 50
+      - pause: {}
+      - setWeight: 100
+      - pause: {}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: catalog
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: catalog
+    spec:
+      containers:
+      - name: main
+        image: wineinfo-python:latest
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        envFrom:
+        - configMapRef:
+            name: wineinfo-backend-config
+        env:
+        - name: CATALOG_DEMO_MOJIBAKE
+          value: "true"

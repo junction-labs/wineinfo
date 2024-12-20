@@ -145,10 +145,7 @@ is deterministic, it picks the same server every time it sees the same value for
 That kind of consistency is precisely the problem we need to solve to keep our
 recommendations service alive and happy!
 
-## Messing around and Cleaning up
-
-You've reached the end of the Junction demo! Keep clicking around and poking `kubectl`
-if you'd like to explore Junction more.
+## Messing around
 
 An easy way to interact with Junction is to open a Python REPL on the `backend`
 service:
@@ -166,18 +163,13 @@ j = junction.Junction()
 j.resolve_routes("GET", "http://wineinfo-catalog.default.svc.cluster.local", {})
 ```
 
-If you'd like to restore the Wineinfo shop back to where we started
-breaking things for the demo, run:
+## Cleaning Up
+
+To restore the Wineinfo shop back to where we started breaking things for the demo, run:
 
 ```bash
 kubectl delete -f deploy/wineinfo.yaml
 kubectl apply -f deploy/wineinfo.yaml
 ```
 
-Once you're done messing around, you're ready to delete your k3d cluster.
-
-```bash
-k3d cluster delete junction-wineinfo
-```
-
-Thanks for trying Junction!
+Next, head over to [05_argo_rollouts.md](05_argo_rollouts.md).
