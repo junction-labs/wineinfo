@@ -117,7 +117,7 @@ assert not "timeouts" in rule
 assert not "retry" in rule
 ```
 
-## Cleaning up and being Consistent
+## Cleaning up for the next step
 
 To roll back this demo and leave Wineinfo in working order for the next one,
 run:
@@ -128,3 +128,9 @@ kubectl apply -f deploy/wineinfo.yaml
 ```
 
 Next, head over to [04_ring_hash.md](04_ring_hash.md).
+
+If you're fully done, you can fully delete your k3d cluster with:
+
+```bash
+k3d cluster delete junction-wineinfo
+```

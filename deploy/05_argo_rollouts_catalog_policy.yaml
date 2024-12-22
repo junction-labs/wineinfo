@@ -13,16 +13,16 @@ spec:
       trafficRouting:
         plugins:
           argoproj-labs/gatewayAPI:
-            httpRoute: wineinfo-catalog-http-route
+            httpRoute: wineinfo-catalog
             namespace: default
             useHeaderRoutes: true
         managedRoutes:
-          - name: argo-rollouts
+          - name: canary-route1
       steps:
       - setCanaryScale:
           replicas: 1
       - setHeaderRoute:
-          name: "argo-rollouts"
+          name: canary-route1
           match:
           - headerName: x-username
             headerValue:
@@ -31,12 +31,11 @@ spec:
       - setCanaryScale:
           matchTrafficWeight: true
       - setHeaderRoute:
-          name: "argo-rollouts"
+          name: canary-route1
       - setWeight: 50
       - pause: {}
       - setWeight: 100
-      - pause: {}
-  revisionHistoryLimit: 2
+  revisionHistoryLimit: 0
   selector:
     matchLabels:
       app: wineinfo

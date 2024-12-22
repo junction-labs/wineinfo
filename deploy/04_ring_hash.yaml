@@ -28,4 +28,3 @@ spec:
         env:
         - name: RECS_DEMO_FAILURE
           value: "true"
-            
