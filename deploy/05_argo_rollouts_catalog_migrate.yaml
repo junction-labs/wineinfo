@@ -15,11 +15,11 @@ spec:
 kind: HTTPRoute
 apiVersion: gateway.networking.k8s.io/v1beta1
 metadata:
-  name: wineinfo-catalog-http-route
+  name: wineinfo-catalog
   namespace: default
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
+    - group: ''
       kind: Service
       name: wineinfo-catalog
       namespace: default
@@ -30,11 +30,15 @@ spec:
         value: /  
     backendRefs:
     - name: wineinfo-catalog
+      namespace: default
       kind: Service
       port: 80
+      weight: 1
     - name: wineinfo-catalog-canary
+      namespace: default
       kind: Service
       port: 80
+      weight: 0
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -50,12 +54,13 @@ spec:
       trafficRouting:
         plugins:
           argoproj-labs/gatewayAPI:
-            httpRoute: wineinfo-catalog-http-route
+            httpRoute: wineinfo-catalog
             namespace: default
   selector:
     matchLabels:
       app: wineinfo
       service: catalog
+  revisionHistoryLimit: 0
   template:
     metadata:
       labels:

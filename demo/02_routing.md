@@ -231,7 +231,28 @@ Here we check:
 
 Nice! All of our unit tests pass so we can confidently deploy our route.
 
-## Cleaning up and Trying Again
+## Messing around
+
+An easy way to interact with Junction is to open a Python REPL on the `backend`
+service:
+
+```bash
+kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=backend) -- python
+```
+
+Try looking at the Routes that exist for the catalog or search service:
+
+```python
+import junction
+import json
+
+j = junction.Junction()
+print(json.dumps(j.resolve_route("GET", "http://wineinfo-catalog.default.svc.cluster.local", {}), indent=4))
+
+print(json.dumps(j.dump_routes()))
+```
+
+## Cleaning up for the next step
 
 To roll back this demo and leave the application in working order for the next
 demo, run:
@@ -242,3 +263,9 @@ kubectl apply -f deploy/wineinfo.yaml
 ```
 
 When you're done, head over to [03_retries.md](03_retries.md).
+
+If you're fully done, you can fully delete your k3d cluster with:
+
+```bash
+k3d cluster delete junction-wineinfo
+```
