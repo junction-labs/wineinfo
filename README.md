@@ -17,9 +17,8 @@ Setting this up is the hardest part of the demo:
 python3 -m venv .venv
 .venv/bin/pip install --upgrade uv
 .venv/bin/uv pip install -r backend/requirements.txt
+source .venv/bin/activate
 ```
-
-To activate your virtualenv run `source .venv/bin/activate`.
 
 To run the wineinfo service, you'll need `docker` and `kubectl` installed. This
 README won't cover installing them. Once you've gotten both `docker` and

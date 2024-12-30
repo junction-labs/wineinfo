@@ -204,7 +204,42 @@ that the pods are now all running for the non-canary service. Thus we no longer
 have to jump service names back and forth with each deployments.
 
 ```bash
-FIXME
+$ kubectl describe httproutes.gateway.networking.k8s.io/wineinfo-catalog
+Name:         wineinfo-catalog
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+API Version:  gateway.networking.k8s.io/v1
+Kind:         HTTPRoute
+Metadata:
+  Creation Timestamp:  2024-12-24T01:12:34Z
+  Generation:          8
+  Resource Version:    1457
+  UID:                 2aa74963-6ef4-46e0-a635-87655cbf6b63
+Spec:
+  Parent Refs:
+    Group:
+    Kind:       Service
+    Name:       wineinfo-catalog
+    Namespace:  default
+  Rules:
+    Backend Refs:
+      Group:
+      Kind:       Service
+      Name:       wineinfo-catalog
+      Namespace:  default
+      Port:       80
+      Weight:     100
+      Group:
+      Kind:       Service
+      Name:       wineinfo-catalog-canary
+      Namespace:  default
+      Port:       80
+      Weight:     0
+    Matches:
+      Path:
+        Type:   PathPrefix
+        Value:  /
 ```
 
 ## Cleaning up for the next step

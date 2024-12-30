@@ -1,0 +1,220 @@
+---
+# applicationset.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: wineinfo-environments
+spec:
+  generators:
+    - list:
+        elements:
+          # Production environment
+          - env: prod
+            type: rollout
+            image: wineinfo-python:latest
+            replicas: 4
+            vars:
+              CATALOG_DEMO_MOJIBAKE: "false"
+              LOG_LEVEL: "info"
+          # Sandbox environments
+          - env: dev-john
+            type: deployment
+            image: wineinfo-python:feature-123
+            replicas: 1
+            vars:
+              CATALOG_DEMO_MOJIBAKE: "true"
+              LOG_LEVEL: "debug"
+  template:
+    metadata:
+      name: 'wineinfo-{{env}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/your-org/wineinfo-repo.git
+        targetRevision: HEAD
+        path: environments/{{type}}
+        helm:
+          parameters:
+            - name: "global.env"
+              value: "{{env}}"
+            - name: "global.image"
+              value: "{{image}}"
+            - name: "global.replicas"
+              value: "{{replicas}}"
+            - name: "global.vars"
+              value: |
+                {{vars}}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: default
+---
+# HTTPRoute configuration
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: wineinfo-catalog
+spec:
+  parentRefs:
+    - group: ''
+      kind: Service
+      name: wineinfo-catalog
+  rules:
+    # Sandbox environments (matched first)
+    {{- range $element := .Values.elements }}
+    {{- if ne $element.env "prod" }}
+    - matches:
+        - headers:
+            - name: sandbox-id
+              value: {{ $element.env }}
+      backendRefs:
+        - name: wineinfo-catalog-{{ $element.env }}
+          port: 80
+          weight: 100
+    {{- end }}
+    {{- end }}
+    # Production traffic (default fallback)
+    - backendRefs:
+        - name: wineinfo-catalog-prod
+          port: 80
+          weight: 100
+---
+# environments/rollout/templates/rollout.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: wineinfo-catalog-{{ .Values.global.env }}
+spec:
+  replicas: {{ .Values.global.replicas }}
+  strategy:
+    canary:
+      stableService: wineinfo-catalog-{{ .Values.global.env }}
+      canaryService: wineinfo-catalog-{{ .Values.global.env }}-canary
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: wineinfo-catalog
+            useHeaderRoutes: true
+        managedRoutes:
+          - name: canary-route1
+      steps:
+      - setCanaryScale:
+          replicas: 1
+      - setHeaderRoute:
+          name: canary-route1
+          match:
+          - headerName: x-username
+            headerValue:
+              exact: admin
+      - pause: {}
+      - setCanaryScale:
+          matchTrafficWeight: true
+      - setHeaderRoute:
+          name: canary-route1
+      - setWeight: 50
+      - pause: {}
+      - setWeight: 100
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: catalog
+      env: {{ .Values.global.env }}
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: catalog
+        env: {{ .Values.global.env }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.global.image }}
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        envFrom:
+        - configMapRef:
+            name: wineinfo-backend-config
+        env:
+        {{- range $key, $value := .Values.vars }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+---
+# environments/rollout/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-catalog
+  env: prod
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: catalog
+    env: prod
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-catalog-canary
+  env: canary
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: catalog
+    env: canary
+  ports:
+    - port: 80
+      targetPort: 8000
+---
+# environments/deployment/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-catalog-{{ .Values.global.env }}
+spec:
+  replicas: {{ .Values.global.replicas }}
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: catalog
+      env: {{ .Values.global.env }}
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: catalog
+        env: {{ .Values.global.env }}
+    spec:
+      containers:
+      - name: main
+        image: {{ .Values.global.image }}
+        imagePullPolicy: IfNotPresent
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        envFrom:
+        - configMapRef:
+            name: wineinfo-backend-config
+        env:
+        {{- range $key, $value := .Values.vars }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+---
+# environments/deployment/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-catalog-{{ .Values.global.env }}
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: catalog
+    env: {{ .Values.global.env }}
+  ports:
+    - port: 80
+      targetPort: 8000
