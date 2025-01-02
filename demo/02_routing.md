@@ -165,8 +165,8 @@ requests or to make our applications more resilient to failure.
 
 ### Backend Services
 
-Both of those rules have Backends, which describe where to send traffic once
-the rules match.
+Both of those rules have Backends, which describe where to send traffic once the
+rules match.
 
 Junction supports two types of Backend services. The first is where the IPs are
 looked up in the client's DNS. The second is where the IP's are pulled from

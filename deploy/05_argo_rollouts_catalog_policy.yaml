@@ -32,7 +32,7 @@ spec:
           matchTrafficWeight: true
       - setHeaderRoute:
           name: canary-route1
-      - setWeight: 50
+      - setWeight: 25
       - pause: {}
       - setWeight: 100
   revisionHistoryLimit: 0

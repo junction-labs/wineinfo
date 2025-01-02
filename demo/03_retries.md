@@ -34,8 +34,8 @@ feel much better than they did before.
 ## What Just Happened?
 
 To quickly add retries to the search service, we added another Route. This time,
-we matched any request heading for the `search` API call on the search service, and
-made sure it has retry and timeout settings.
+we matched any request heading for the `search` API call on the search service,
+and made sure it has retry and timeout settings.
 
 Because Junction is just code, we're importing parts of our application codebase
 (`RemoteSearchService.SERVICE`) so we don't have to remember what the actual
@@ -74,9 +74,9 @@ When clients pick up this configuration change, they automatically start
 retrying failed requests without the service team having to change anything else
 about their code.
 
-In the `timeout` section, we set the policy that each request should
-have a timeout of 100ms. If we wanted to set a timeout for _all_ retries, we
-could do that too, but that wouldn't solve our problem here.
+In the `timeout` section, we set the policy that each request should have a
+timeout of 100ms. If we wanted to set a timeout for _all_ retries, we could do
+that too, but that wouldn't solve our problem here.
 
 In the `retry` section, we're setting the policy that all failed requests get 5
 total attempts, and that we should do exponential backoff between each request
@@ -88,8 +88,8 @@ on a Route.
 
 ### Unit Testing
 
-This is a more trivial case than the last, but it is still worth testing. First, lets
-show that the path matching works, even when we specify a query string:
+This is a more trivial case than the last, but it is still worth testing. First,
+lets show that the path matching works, even when we specify a query string:
 
 ```python
 (matched, rule_idx, backend) = junction.check_route(

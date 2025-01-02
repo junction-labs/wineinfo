@@ -2,29 +2,48 @@
 
 In this demo, we integrate Junction with [Argo
 Rollouts][https://argoproj.github.io/rollouts/] and demonstrate how Junction
-unlocks progressive delivery capabilities, without requiring a heavyweight
-service mesh.
+unlocks progressive delivery capabilities.
 
-For those unaware, progressive delivery is a technique that gradually rolls out
-software changes to a subset of users before full release, using feature flags
-and canary deployments to minimize risk and enable quick rollbacks. 
+Progressive delivery is a continuous delivery technique that gradually rolls out
+software changes to a subset of users before full release to minimize risk,
+enable quick rollbacks. 
 
 Now, this may sound exactly like what we did in the routing demo. That is
 correct, except Argo Rollouts allows us to put in place standard policies that
-can be followed by the team for all rollouts to production, making sure they all
+can be followed for all rollouts to production, making sure they all
 go through the same safety steps. No more YOLO.
 
-In our case, we are going to put this policy on the catalog service's rollouts:
-- Rollout to admin user, require explicit sign off before going our further
-- Rollout to 1 node for all users, require 99% of requests to succeed before
-  proceeding
+In our case, we are going to put the following policy on the catalog service's 
+rollouts:
+- Rollout to admin user, require explicit sign off before going further
+- Rollout to 25% of traffic, require explicit sign off before going further
 - Rollout to all nodes.
 
-## Setup
+In Argo Rollout terms, this is expressed as:
 
-The setup here is a bit more complicated then the last. To install the Argo
-controller, its command line tool, its CRDs, and its policies for manipulating
-the Gateway API, run:
+```yaml
+      - setCanaryScale:
+          replicas: 1
+      - setHeaderRoute:
+          name: "argo-rollouts"
+          match:
+          - headerName: x-username
+            headerValue:
+              exact: admin
+      - pause: {}
+      - setCanaryScale:
+          matchTrafficWeight: true
+      - setHeaderRoute:
+          name: "argo-rollouts"
+      - setWeight: 25
+      - pause: {}
+      - setWeight: 100
+```
+
+## Setting up Argo Rollouts
+
+To install the Argo Rollouts controller, its command line tool, its CRDs, and
+its policies for manipulating the Gateway API, run:
 
 ```bash
 brew install argoproj/tap/kubectl-argo-rollouts
@@ -35,10 +54,8 @@ kubectl patch deployment argo-rollouts -n argo-rollouts --type='json' -p='[{"op"
 kubectl rollout restart deploy -n argo-rollouts
 ```
 
-Now lets migrate the catalog service, to use Argo. This installs the new
-Rollout, (without the policy) waits for it to scale up, deletes the Deployment,
-then updates the Rollout so that going forward, all deployments must follow the
-policy:
+Now to migrate the catalog service service to use our Argo Rollout
+policy rather than a Deployment:
 
 ```bash
 kubectl apply -f ./deploy/05_argo_rollouts_catalog_migrate.yaml
@@ -47,7 +64,7 @@ kubectl delete deployment/wineinfo-catalog
 kubectl apply -f ./deploy/05_argo_rollouts_catalog_policy.yaml
 ```
 
-You can see the rollout now installed with:
+You can now see the rollout installed with:
 ```bash
 $ kubectl argo rollouts get rollout wineinfo-catalog
 Name:            wineinfo-catalog
@@ -75,55 +92,29 @@ NAME                                          KIND        STATUS     AGE  INFO
       └──□ wineinfo-catalog-765b5c6499-mjrmb  Pod         ✔ Running  12s  ready:1/1
 ```
 
-So at this point we are in a similar place to the routing demo, character
-encoding is once again borked:
+We also switched to our buggy deployment to set up the demo. You can verify
+character encoding is once again borked:
 
 ![mojibake-homepage](./images/mojibake-search.jpg)
 
 ## Argo Rollouts to the (safe) rescue - step 1, admin rollout
 
-Lets kick off the deployment of the fix. `05_argo_rollouts_catalog_policy.yaml`
-puts in place this policy for all future rollouts:
-
-```yaml
-      - setCanaryScale:
-          replicas: 1
-      - setHeaderRoute:
-          name: "argo-rollouts"
-          match:
-          - headerName: x-username
-            headerValue:
-              exact: admin
-      - pause: {}
-      - setCanaryScale:
-          matchTrafficWeight: true
-      - setHeaderRoute:
-          name: "argo-rollouts"
-      - setWeight: 50
-      - pause: {}
-      - setWeight: 100
-```
-
-In human terms:
-- spin up 1 canary, Route x_username = admin traffic to it, pause for acknowledgment.
-- remote header route, and spin up canary to take 50% of traffic. pause for acknowledgment.
-- rollout to 100%, complete the rollout.
-
-Normally we would kick off the rollout by patching in a new container version.
-In our case though we are using an environment variable to simulate the changed
-behavior. So lets patch it in:
+Lets kick off the deployment of the fix. Normally we would kick off the rollout 
+by patching in a new container version. In our case we are using an environment 
+variable to simulate the changed behavior. So lets patch it in:
 ```bash
 kubectl patch rollout wineinfo-catalog --type json -p '[{"op": "remove", "path": "/spec/template/spec/containers/0/env"}]'
 ```
 
-The Argo Rollouts operator sees this, and starts our deployment, you can see it
+The Argo Rollouts operator sees this and starts our deployment. You can see it
 with `kubectl argo rollouts get rollout wineinfo-catalog`. 
 
-The first step is just to admin user, so go to the UI, change to Admin, and see the bug is fixed:
+This first step rolls out only to admin user, so go to the UI, change to Admin, 
+and verify the bug is fixed:
 
 ![normal-homepage](./images/homepage.jpg)
 
-You can also see the route it has installed with:
+Looking under the covers, you can also see the route it installed with:
 ```bash
 $ kubectl describe httproutes.gateway.networking.k8s.io/wineinfo-catalog
 Name:         wineinfo-catalog
@@ -175,39 +166,72 @@ Spec:
         Value:  /
 ```
 
-## Argo Rollouts to the (safe) rescue - step 2, 50% rollout, with health check
+## Argo Rollouts to the (safe) rescue - step 2 and 3
 
-Great the fix is working. Promote to the next step with:
+We have verified the fix is working. Promote to the next step with:
 ```bash
 kubectl argo rollouts promote wineinfo-catalog
 ```
 
-That promotes to 50% of the fleet. Now you should be able to go to a non-admin
-user, and see that 50% of the time your search is getting the right result. 
+That promotes to 25% of the fleet. Now you should be able to go to a non-admin
+user, and see that 25% of the time your search is getting the right result. 
 
-
-
-## Argo Rollouts to the (safe) rescue - step 3 - finish the rollout
-
-So lets finish the deployment to 100% with:
+So  finish the deployment to 100% with one more promotion:
 ```bash
 kubectl argo rollouts promote wineinfo-catalog
 ```
 
-We can see it is done with:
+You can see it is go out with with:
 ```bash
 kubectl argo rollouts get rollout wineinfo-catalog --watch
 ```
 
 Further the other thing we can see, is that Argo has used dynamic tagging so
 that the pods are now all running for the non-canary service. Thus we no longer
-have to jump service names back and forth with each deployments.
+have to jump service names back and forth with each deployment.
 
 ```bash
-FIXME
+$ kubectl describe httproutes.gateway.networking.k8s.io/wineinfo-catalog
+Name:         wineinfo-catalog
+Namespace:    default
+Labels:       <none>
+Annotations:  <none>
+API Version:  gateway.networking.k8s.io/v1
+Kind:         HTTPRoute
+Metadata:
+  Creation Timestamp:  2024-12-24T01:12:34Z
+  Generation:          8
+  Resource Version:    1457
+  UID:                 2aa74963-6ef4-46e0-a635-87655cbf6b63
+Spec:
+  Parent Refs:
+    Group:
+    Kind:       Service
+    Name:       wineinfo-catalog
+    Namespace:  default
+  Rules:
+    Backend Refs:
+      Group:
+      Kind:       Service
+      Name:       wineinfo-catalog
+      Namespace:  default
+      Port:       80
+      Weight:     100
+      Group:
+      Kind:       Service
+      Name:       wineinfo-catalog-canary
+      Namespace:  default
+      Port:       80
+      Weight:     0
+    Matches:
+      Path:
+        Type:   PathPrefix
+        Value:  /
 ```
 
 ## Cleaning up for the next step
+
+This is the current end of the demo. Thanks for trying Junction!
 
 To restore the Wineinfo shop, run:
 
@@ -219,8 +243,6 @@ kubectl delete namespace argo-rollouts
 kubectl delete -f deploy/wineinfo.yaml
 kubectl apply -f deploy/wineinfo.yaml
 ```
-
-This is the current end of the demo. Thanks for trying Junction!
 
 If you're fully done, you can fully delete your k3d cluster with:
 

@@ -68,8 +68,8 @@ Found 3 pods, using pod/wineinfo-recs-7567f698cf-trmvq
    2 /recommendations/?query=white&limit=10
 ```
 
-To fix the issue, it seems like we'll have to limit the number of unique queries that
-get sent to each individual server.
+To fix the issue, it seems like we'll have to limit the number of unique queries
+that get sent to each individual server.
 
 Fortunately, Junction implements a consistent hashing algorithm called RingHash,
 which allows us to consistently send a shard of traffic to the same server, even
@@ -102,8 +102,8 @@ route to each service based on the query. That's a kind of load balancing.
 
 So we configured Junction so that the recommendations service Backend used
 consistent hashing based on the `?query` URL parameter. Any time the Junction
-client makes that route to this Backend (see the [routing](./02_routing.md)
-demo if you need to refresh your memory), it will use the configuration we're
+client makes that route to this Backend (see the [routing](./02_routing.md) demo
+if you need to refresh your memory), it will use the configuration we're
 defining.
 
 ```python
@@ -126,21 +126,23 @@ backend: config.Backend = {
 This is our first time seeing a Junction Backend, so let's walk through it in
 detail.
 
-A backend always has an `id,` which combines a `Service` and a
-`port.` A `Service` is a logical target for traffic, and the port is the port
-on which traffic comes in. Here, our service is a Kubernetes Service identified
-with a `namespace` and a `name.` It could also be an autoscaling group in
-your cloud provider or an internal service at your company backed by DNS.
+A backend always has an `id,` which combines a `Service` and a `port.` A
+`Service` is a logical target for traffic, and the port is the port on which
+traffic comes in. Here, our service is a Kubernetes Service identified with a
+`namespace` and a `name.` It could also be an autoscaling group in your cloud
+provider or an internal service at your company backed by DNS.
 
 Next, we're configuring `lb`, the load balancer for this Backend. The load
-balancer we've declared uses the `RingHash` algorithm, and we've specified that it should use a URL query parameter with the name `query` as its input.
+balancer we've declared uses the `RingHash` algorithm, and we've specified that
+it should use a URL query parameter with the name `query` as its input.
 
 The RingHash load balancing algorithm we just specified happens is a version of
 [consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing), and it
 happens **entirely client-side**. Every time the client makes a request, it
-hashes that request's `query` parameter and uses it to pick a server from
-all of the backends that make up the recommendations service. Because that hash
-is deterministic, it picks the same server every time it sees the same value for a query parameter.
+hashes that request's `query` parameter and uses it to pick a server from all of
+the backends that make up the recommendations service. Because that hash is
+deterministic, it picks the same server every time it sees the same value for a
+query parameter.
 
 That kind of consistency is precisely the problem we need to solve to keep our
 recommendations service alive and happy!
