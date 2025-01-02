@@ -252,6 +252,8 @@ class KubeIdForker:
     def process(resources: List[dict], sandbox_config: SandboxConfig):
         ref_mapping = {}
         for obj in resources:
+            # note: this may use old namespace so we do it first
+            KubeIdForker._update_references(obj, sandbox_config, ref_mapping) 
             original_ref = KubeId(
                 kind=obj["kind"],
                 name=obj["metadata"]["name"],
@@ -262,14 +264,15 @@ class KubeIdForker:
                 name=KubeIdForker.new_name(original_ref.name, sandbox_config),
                 namespace=sandbox_config.get("new_namespace", original_ref.namespace)
             )      
-            ref_mapping[original_ref] = new_ref
             obj["metadata"]["name"] = new_ref.name
             obj["metadata"]["namespace"] = new_ref.namespace
             KubeIdForker._add_labels(obj, sandbox_config)
             KubeIdForker._update_selectors(obj, sandbox_config)
-            KubeIdForker._update_references(obj, sandbox_config, ref_mapping)               
             if "new_namespace" in sandbox_config:
                 KubeIdForker._update_namespace_references(obj, sandbox_config)
+            
+            # update mapping for later things in the list
+            ref_mapping[original_ref] = new_ref
 
     @staticmethod
     def add_labels(labelDict: Dict[str, str], sandbox_config: SandboxConfig):
@@ -343,7 +346,11 @@ class KubeIdForker:
                 name = item.get(name_field)
                 if not name:
                     continue
-                namespace = item.get(namespace_field, sandbox_config["source_namespace"])
+                #if we dont have namespace for a reference, it just the namespace of the object
+                if namespace_field:
+                    namespace = item.get(namespace_field, obj["metadata"]["namespace"])
+                else:
+                    namespace = obj["metadata"]["namespace"]
                 ref = KubeId(kind=match_kind, name=name, namespace=namespace)
                 if ref in ref_mapping:
                     new_ref = ref_mapping[ref]
