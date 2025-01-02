@@ -1,7 +1,7 @@
 # Argo Rollouts
 
 In this demo, we integrate Junction with [Argo
-Rollouts][https://argoproj.github.io/rollouts/] and demonstrate how Junction
+Rollouts](https://argoproj.github.io/rollouts/) and demonstrate how Junction
 unlocks progressive delivery capabilities.
 
 Progressive delivery is a continuous delivery technique that gradually rolls out
