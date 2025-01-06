@@ -10,7 +10,7 @@ service does not have them.
 Simulate the load spikes by running:
 
 ```bash
-kubectl apply -f deploy/03_retries.yaml
+kubectl apply -f demo/deploy/03_retries.yaml
 ```
 
 To see this issue, go to `http://localhost:8010` and do some searches. You
@@ -23,7 +23,7 @@ change both without needing to do a new deployment. All we have to do is
 update a Route.
 
 ```bash
-$ python ./junction/03_retries.py
+$ python demo/python/03_retries.py
 httproute.gateway.networking.k8s.io/wineinfo-search created
 ```
 

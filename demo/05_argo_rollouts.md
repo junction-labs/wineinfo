@@ -49,7 +49,7 @@ its policies for manipulating the Gateway API, run:
 brew install argoproj/tap/kubectl-argo-rollouts
 kubectl create namespace argo-rollouts
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-kubectl apply -f ./deploy/05_argo_rollouts_install.yaml
+kubectl apply -f demo/deploy/05_argo_rollouts_install.yaml
 kubectl patch deployment argo-rollouts -n argo-rollouts --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/args", "value": ["--loglevel", "debug"]}]'
 kubectl rollout restart deploy -n argo-rollouts
 ```
@@ -58,10 +58,10 @@ Now to migrate the catalog service service to use our Argo Rollout
 policy rather than a Deployment:
 
 ```bash
-kubectl apply -f ./deploy/05_argo_rollouts_catalog_migrate.yaml
+kubectl apply -f demo/deploy/05_argo_rollouts_catalog_migrate.yaml
 kubectl argo rollouts status wineinfo-catalog --watch
 kubectl delete deployment/wineinfo-catalog
-kubectl apply -f ./deploy/05_argo_rollouts_catalog_policy.yaml
+kubectl apply -f demo/deploy/05_argo_rollouts_catalog_policy.yaml
 ```
 
 You can now see the rollout installed with:
@@ -236,8 +236,8 @@ This is the current end of the demo. Thanks for trying Junction!
 To restore the Wineinfo shop, run:
 
 ```bash
-kubectl delete -f deploy/05_argo_rollouts_catalog_install.yaml
-kubectl delete -f ./deploy/05_argo_rollouts_install.yaml
+kubectl delete -f demo/deploy/05_argo_rollouts_catalog_install.yaml
+kubectl delete -f demo/deploy/05_argo_rollouts_install.yaml
 kubectl delete -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 kubectl delete namespace argo-rollouts
 kubectl delete -f deploy/wineinfo.yaml

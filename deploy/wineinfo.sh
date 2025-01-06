@@ -5,10 +5,10 @@
 
 set -euo pipefail
 
-backend_docker() {
+python_services_docker() {
     docker build \
         --tag wineinfo-python:latest \
-        --file backend/Dockerfile backend/
+        --file python_services/Dockerfile python_services/
 }
 
 frontend_docker() {
@@ -47,7 +47,7 @@ main() {
     local cluster="junction-wineinfo"
 
     k3d_cluster "${cluster}"
-    backend_docker
+    python_services_docker
     frontend_docker
     import_images "${cluster}"
 

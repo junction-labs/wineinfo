@@ -7,7 +7,7 @@ by upgrading the catalog yourself and deploying the new version of the catalog t
 Kubernetes.
 
 ```bash
-kubectl apply -f deploy/02_routing.yaml
+kubectl apply -f demo/deploy/02_routing.yaml
 ```
 
 As soon as the upgrade lands, bug reports will start rolling in. Uh oh. If
@@ -28,7 +28,7 @@ un-YOLOd our encoding problems.
 Let's set up a Junction Route to do that.
 
 ```bash
-$ python ./junction/02_routing.py
+$ python demo/python/02_routing.py
 httproute.gateway.networking.k8s.io/wineinfo-catalog-default-svc-cluster-local created
 ```
 
@@ -233,11 +233,11 @@ Nice! All of our unit tests pass so we can confidently deploy our route.
 
 ## Messing around
 
-An easy way to interact with Junction is to open a Python REPL on the `backend`
-service:
+An easy way to interact with Junction is to open a Python REPL on a running
+Python service:
 
 ```bash
-kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=backend) -- python
+kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=catalog) -- python
 ```
 
 Try looking at the Routes that exist for the catalog or search service:

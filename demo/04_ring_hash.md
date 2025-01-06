@@ -10,7 +10,7 @@ That's not that many queries before the service falls over! Simulate the problem
 by running:
 
 ```bash
-kubectl apply -f deploy/04_ring_hash.yaml
+kubectl apply -f demo/deploy/04_ring_hash.yaml
 ```
 
 We could convince ourselves the problem exists by playing with multiple browser
@@ -19,11 +19,11 @@ program spins up ten threads, each hitting
 `http://localhost:8011/wines/recommendations?query=` with their query,
 generating a new request every second.
 
-Run it with `python junction/04_generator.py --duration 10`.  You should see
+Run it with `python demo/python/04_generator.py --duration 10`.  You should see
 something like this:
 
 ```bash
-$ python junction/04_generator.py --duration 10
+$ python demo/python/04_generator.py --duration 10
 Response Codes:
   200: 10
   500: 100
@@ -41,7 +41,7 @@ kubectl scale --replicas=4 deployment/wineinfo-recs
 So should everything be better? Lets find out.
 
 ```bash
-$ python junction/04_generator.py --duration 10
+$ python demo/python/04_generator.py --duration 10
 Response Codes:
   200: 41
   500: 69
@@ -76,12 +76,12 @@ which allows us to consistently send a shard of traffic to the same server, even
 as the service scales up and down. Let's try it.
 
 ```bash
-$ python ./junction/04_ring_hash.py
+$ python demo/python/04_ring_hash.py
 service/wineinfo-recs patched
 ```
 
 ```bash
-$ python junction/04_generator.py --duration 10
+$ python demo/python/04_generator.py --duration 10
 Response Codes:
   200: 110
 ```
