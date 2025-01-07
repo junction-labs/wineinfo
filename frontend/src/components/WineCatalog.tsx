@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { getCellarWines, addToCellar, removeFromCellar, searchWines, recommendWines } from '@/lib/actions/wineActions';
-import { type Wine } from '@/lib/types';
+import { type Wine } from '@/lib/api_types';
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

@@ -20,7 +20,7 @@ class PersistServiceImpl:
                 """
                 CREATE TABLE cellar (
                     id INTEGER PRIMARY KEY,
-                    user_id TEXT NOT NULL,
+                    user_id INTEGER NOT NULL,
                     wine_id INTEGER NOT NULL
                 )
                 """

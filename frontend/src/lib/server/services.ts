@@ -1,7 +1,6 @@
-import { Wine, PaginatedList, SearchRequest, RecsRequest } from '@/lib/types';
-import { HttpClient } from '@/lib/httpClient';
-import { settings } from '@/lib/config';
-import { Session } from 'next-auth';
+import { Wine, PaginatedList, SearchRequest, RecsRequest } from '@/lib/api_types';
+import { HttpClient } from '@/lib/server/httpClient';
+import { settings } from '@/lib/server/config';
 
 
 export class CatalogService {
@@ -67,7 +66,7 @@ export class PersistService {
     async doSql<T>(
         baggage: string[],
         query: string,
-        params: (string | number)[], 
+        params: (string | number)[],
     ): Promise<T[]> {
         return this.client.post(baggage, '/do_sql/', { query, params });
     }

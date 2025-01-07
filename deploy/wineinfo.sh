@@ -40,6 +40,7 @@ run_ezbake() {
 }
 
 run_wineinfo() {
+    kubectl delete -f ./deploy/wineinfo.yaml    
     kubectl apply -f ./deploy/wineinfo.yaml
 }
 
@@ -58,4 +59,3 @@ main() {
 
 set -x
 main
- 

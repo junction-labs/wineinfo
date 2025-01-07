@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from 'next/navigation'
-import { USERS } from "@/lib/config";
+import { USERS } from "@/lib/auth";
 
 export default function SignIn() {
     const [error, setError] = useState("")

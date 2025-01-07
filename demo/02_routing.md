@@ -90,7 +90,7 @@ catalog_next: config.Service = {
     "namespace": "default",
 }
 
-is_admin = config.RouteMatch(headers=[{"name": "x-username", "value": "admin"}])
+is_admin = config.RouteMatch(headers=[{"name": "baggage", "value": "username=admin"}])
 
 route: config.Route = {
     "id": "wineinfo-catalog",
@@ -269,3 +269,30 @@ If you're fully done, you can fully delete your k3d cluster with:
 ```bash
 k3d cluster delete junction-wineinfo
 ```
+
+## Why do we match the header "baggage"?
+
+This is just for those curious. Junction can match any HTTP header name, so 
+for instance we could have matched `{"name": "x-username", "value": "admin"}`
+if that's what our services were emitting. 
+
+The reason we use baggage though, is its a newish [standard](https://www.w3.org/TR/baggage/) 
+from Open Telemetry for application-level context propagation through headers. 
+In the simplest form, it just looks like key=value HTTP headers named "baggage":
+
+```
+baggage: tenant_id=acme-corp-123
+baggage: shopping_cart_id=cart-454
+baggage: environment=staging
+```
+
+They of course are interested in it for observability context, but we think it is 
+useful for Junction routing for 2 reasons:
+* if you want to route on it, you generally want to have the ability to
+observe it separately
+* OTel has put quite a bit of work of making this propagation transparent
+from the application code in a bunch of frameworks, so if you use those frameworks
+you can get headers propagated from request to request without changing any
+code
+
+Note for our 

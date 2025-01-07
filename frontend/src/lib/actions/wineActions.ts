@@ -1,10 +1,10 @@
 'use server';
 
-import { Wine, PaginatedList, SearchRequest } from '@/lib/types';
-import { catalogService, searchService, recsService, persistService } from '@/lib/services';
+import { Wine, PaginatedList, SearchRequest } from '@/lib/api_types';
+import { catalogService, searchService, recsService, persistService } from '@/lib/server/services';
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/config";
-import { genBaggage } from '@/lib/httpClient';
+import { genBaggage } from "@/lib/server/config";
+import { authOptions } from "@/lib/auth";
 import { headers } from 'next/headers';
 
 export async function getCellarWines(): Promise<Wine[]> {
@@ -13,11 +13,10 @@ export async function getCellarWines(): Promise<Wine[]> {
     if (!session?.user?.id) {
         throw new Error("User not authenticated");
     }
-    const userId: string = session.user.id;
     const result = await persistService.doSql<[number]>(
-        baggage, 
+        baggage,
         "SELECT wine_id FROM cellar WHERE user_id = ?",
-        [userId]
+        [session.user.id]
     );
 
     const wineIds = result.map((row: any[]) => row[0]);
@@ -30,12 +29,10 @@ export async function addToCellar(wineId: number) {
     if (!session?.user?.id) {
         throw new Error("User not authenticated");
     }
-    const userId: string = session.user.id;
-
     await persistService.doSql(
         baggage,
         "INSERT INTO cellar (wine_id, user_id) VALUES (?, ?)",
-        [wineId, userId]
+        [wineId, session.user.id]
     );
 }
 
@@ -45,11 +42,10 @@ export async function removeFromCellar(wineId: number) {
     if (!session?.user?.id) {
         throw new Error("User not authenticated");
     }
-    const userId: string = session.user.id;
     await persistService.doSql(
         baggage,
         "DELETE FROM cellar WHERE wine_id = ? AND user_id = ?",
-        [wineId, userId]
+        [wineId, session.user.id]
     );
 }
 

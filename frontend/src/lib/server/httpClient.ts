@@ -1,18 +1,8 @@
-import { settings } from '@/lib/config';
+import { settings } from '@/lib/server/config';
 import { Session } from 'next-auth';
 
 export interface Fetcher {
     fetch(url: string, config: RequestInit): Promise<Response>;
-}
-
-export function genBaggage(headers: Headers, session: Session | null ): string[] {
-    const requestId = headers.get('x-request-id') || crypto.randomUUID()
-    return [
-        'request-id=' + requestId,
-        'user-id=' + (session?.user?.id || ''),
-        'username=' + (session?.user?.name || ''),
-        'requestId=' + requestId
-    ]    
 }
 
 export class HttpClient {
@@ -20,9 +10,9 @@ export class HttpClient {
 
     constructor(private baseUrl: string) {
         this.baseUrl = baseUrl.replace(/\/$/, '');
-        if (false) {
+        if (settings.useJunction) {
             this.junction = require("@junction-labs/client");
-        }        
+        }
     }
 
     private async myfetch(input: string | URL | globalThis.Request, init?: RequestInit): Promise<Response> {
@@ -31,7 +21,7 @@ export class HttpClient {
         } else {
             return fetch(input, init);
         }
-    }    
+    }
 
     private async request<T>(
         baggage: string[],
