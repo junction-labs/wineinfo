@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class ServiceSettings(BaseSettings):
     catalog_service: str = "http://localhost:8001"
     search_service: str = "http://localhost:8002"
@@ -10,5 +11,3 @@ class ServiceSettings(BaseSettings):
     catalog_demo_mojibake: bool = False
     search_demo_latency: bool = False
     recs_demo_failure: bool = False
-
-STANDARD_HEADER_NAMES = [ "x-username", "x-tenantid" ]

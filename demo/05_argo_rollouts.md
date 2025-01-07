@@ -27,9 +27,9 @@ In Argo Rollout terms, this is expressed as:
       - setHeaderRoute:
           name: "argo-rollouts"
           match:
-          - headerName: x-username
+          - headerName: baggage
             headerValue:
-              exact: admin
+              exact: username=admin
       - pause: {}
       - setCanaryScale:
           matchTrafficWeight: true

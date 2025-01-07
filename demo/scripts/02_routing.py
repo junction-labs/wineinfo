@@ -14,7 +14,7 @@ catalog_next: config.Service = {
     "namespace": "default",
 }
 
-is_admin = config.RouteMatch(headers=[{"name": "x-username", "value": "admin"}])
+is_admin = config.RouteMatch(headers=[{"name": "baggage", "value": "username=admin"}])
 
 route: config.Route = {
     "id": "wineinfo-catalog",
@@ -43,7 +43,7 @@ assert backend == {**catalog, "port": 80}
     routes=[route],
     method="GET",
     url="http://" + service_hostname(catalog) + "/",
-    headers={"x-username": "admin"},
+    headers={"baggage": "username=admin"},
 )
 assert rule_idx == 0
 assert backend == {**catalog_next, "port": 80}

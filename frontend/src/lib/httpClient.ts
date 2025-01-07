@@ -1,9 +1,19 @@
 import { settings } from '@/lib/config';
+import { Session } from 'next-auth';
 
 export interface Fetcher {
     fetch(url: string, config: RequestInit): Promise<Response>;
 }
 
+export function genBaggage(headers: Headers, session: Session | null ): string[] {
+    const requestId = headers.get('x-request-id') || crypto.randomUUID()
+    return [
+        'request-id=' + requestId,
+        'user-id=' + (session?.user?.id || ''),
+        'username=' + (session?.user?.name || ''),
+        'requestId=' + requestId
+    ]    
+}
 
 export class HttpClient {
     private junction: any;
@@ -24,21 +34,17 @@ export class HttpClient {
     }    
 
     private async request<T>(
+        baggage: string[],
         method: 'GET' | 'POST',
         url: string,
-        data?: any,
-        username?: string
-    ): Promise<T> {
+        data?: any): Promise<T> {
         try {
-            const headers: HeadersInit = {
-                'Content-Type': 'application/json'
-            };
-
-            if (username) {
-                headers['x-username'] = username;
-            }
-
-            const config: RequestInit = { method, headers };
+            const headers = new Headers()
+            headers.append('Content-Type', 'application/json');
+            baggage.forEach(item => {
+                headers.append('baggage', item)
+            })
+            const request: RequestInit = { method, headers };
 
             if (method === 'GET' && data) {
                 const params = new URLSearchParams();
@@ -51,10 +57,10 @@ export class HttpClient {
                 });
                 url = `${url}?${params.toString()}`;
             } else if (data) {
-                config.body = JSON.stringify(data);
+                request.body = JSON.stringify(data);
             }
 
-            const response = await this.myfetch(`${this.baseUrl}${url}`, config);
+            const response = await this.myfetch(`${this.baseUrl}${url}`, request);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -64,11 +70,11 @@ export class HttpClient {
         }
     }
 
-    async get<T>(url: string, data?: any, username?: string): Promise<T> {
-        return this.request<T>('GET', url, data, username);
+    async get<T>(baggage: string[], url: string, data?: any): Promise<T> {
+        return this.request<T>(baggage, 'GET', url, data);
     }
 
-    async post<T>(url: string, data: any, username?: string): Promise<T> {
-        return this.request<T>('POST', url, data, username);
+    async post<T>(baggage: string[], url: string, data: any): Promise<T> {
+        return this.request<T>(baggage, 'POST', url, data);
     }
 }

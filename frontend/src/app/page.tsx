@@ -1,32 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { type User } from '@/lib/types';
 import WineCatalog from '@/components/WineCatalog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-const USERS: User[] = [
-  { username: "Anonymous", isAdmin: false },
-  { username: "admin", isAdmin: true },
-  { username: "customer1", isAdmin: false },
-  { username: "customer2", isAdmin: false },
-  { username: "customer3", isAdmin: false },
-  { username: "customer4", isAdmin: false },
-  { username: "customer5", isAdmin: false },
-  { username: "customer6", isAdmin: false },
-  { username: "customer7", isAdmin: false },
-  { username: "customer8", isAdmin: false },
-];
-
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<User>(USERS[0]);
-
-  const handleUserChange = (username: string) => {
-    const newUser = USERS.find(u => u.username === username) || USERS[0];
-    setCurrentUser(newUser);
-  };
+  const { data: session, status } = useSession({
+    required: false
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,25 +26,30 @@ export default function Home() {
             </div>
 
             <div className="flex items-center space-x-4">
-              <Select
-                value={currentUser.username}
-                onValueChange={handleUserChange}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {USERS.map((user) => (
-                    <SelectItem key={user.username} value={user.username}>
-                      {user.username}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {status === 'loading' ? (
+                <div>Loading...</div>
+              ) : session ? (
+                <>
+                  <span>Welcome, {session.user?.name}</span>
+                  <Button
+                    variant="outline"
+                    onClick={() => signOut()}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => signIn()}
+                >
+                  Sign In
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
-        <WineCatalog user={currentUser.username === "Anonymous" ? undefined : currentUser} />
+        <WineCatalog isLoggedIn={session?.user !== undefined} />
       </div>
     </div>
   );

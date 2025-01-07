@@ -2,9 +2,10 @@ import csv
 from functools import lru_cache
 import os
 from typing import Annotated, List
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query
 from .common.config import ServiceSettings
-from .common.api import PaginatedList, Wine, CAT_SERVICE__GET_WINE, CAT_SERVICE__GET_ALL_WINES_PAGINATED
+from .common.api import PaginatedList, Wine, CATALOG_SERVICE
+from .common.baggage import create_baggage_middleware, create_baggage_session
 from fastapi import HTTPException
 from typing import List
 
@@ -27,48 +28,49 @@ class CatalogServiceImpl:
         self.data.append(wine)
         return wine
 
-# only reason we do this is so we can use implementation 
+
+# only reason we do this is so we can use implementation
 # class in the data gen binary
 @lru_cache()
 def get_impl() -> CatalogServiceImpl:
     return CatalogServiceImpl(ServiceSettings())
 
+
 app = FastAPI()
+app.middleware("http")(create_baggage_middleware())
+session = create_baggage_session()
 
-@app.get(CAT_SERVICE__GET_WINE)
+
+@app.get(CATALOG_SERVICE["get_wine"]["path"])
 async def get_wine(
-    request: Request, 
     ids: Annotated[list[int] | None, Query()],
-    impl: CatalogServiceImpl = Depends(get_impl)) -> List[Wine]:
-        wines = []
-        missing_ids = []
+    impl: CatalogServiceImpl = Depends(get_impl),
+) -> List[Wine]:
+    wines = []
+    missing_ids = []
 
-        for wine_id in ids:
-            if wine_id < len(impl.data):
-                wines.append(impl.data[wine_id])
-            else:
-                missing_ids.append(wine_id)
+    for wine_id in ids:
+        if wine_id < len(impl.data):
+            wines.append(impl.data[wine_id])
+        else:
+            missing_ids.append(wine_id)
 
-        if missing_ids:
-            raise HTTPException(
-                status_code=404, detail=f"Wines not found: {missing_ids}"
-            )
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"Wines not found: {missing_ids}")
 
-        return wines
+    return wines
 
 
-@app.get(CAT_SERVICE__GET_ALL_WINES_PAGINATED)
+@app.get(CATALOG_SERVICE["get_all_wines_paginated"]["path"])
 async def get_all_wines_paginated(
-    request: Request, 
-    page: int,
-    page_size: int,
-    impl: CatalogServiceImpl = Depends(get_impl)) -> PaginatedList[Wine]:
-        offset = (page - 1) * page_size
-        paginated_wines = impl.data[offset : offset + page_size]
-        return PaginatedList[Wine](
-            items=paginated_wines,
-            total=len(impl.data),
-            page=page,
-            page_size=page_size,
-            total_pages=(len(impl.data) + page_size - 1) // page_size,
-        )
+    page: int, page_size: int, impl: CatalogServiceImpl = Depends(get_impl)
+) -> PaginatedList[Wine]:
+    offset = (page - 1) * page_size
+    paginated_wines = impl.data[offset : offset + page_size]
+    return PaginatedList[Wine](
+        items=paginated_wines,
+        total=len(impl.data),
+        page=page,
+        page_size=page_size,
+        total_pages=(len(impl.data) + page_size - 1) // page_size,
+    )

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { getCellarWines, addToCellar, removeFromCellar, searchWines, recommendWines } from '@/lib/actions/wineActions';
-import { type User, type Wine } from '@/lib/types';
+import { type Wine } from '@/lib/types';
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ type TabType = 'catalog' | 'cellar' | 'recommendations';
 type NotificationType = 'success' | 'error';
 
 interface WineCatalogProps {
-    user: User | undefined;
+    isLoggedIn: boolean;
 }
 
 interface Notification {
@@ -105,7 +105,7 @@ function WineCard({ wine, inCellar, onCellarToggle, isLoggedIn }: WineCardProps)
 }
 
 // Main Page Component
-export default function WineCatalog({ user }: WineCatalogProps) {
+export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
     const [activeTab, setActiveTab] = useState<TabType>('catalog');
     const [searchTerm, setSearchTerm] = useState('');
     const [wines, setWines] = useState<Wine[]>([]);
@@ -117,7 +117,6 @@ export default function WineCatalog({ user }: WineCatalogProps) {
     const [notification, setNotification] = useState<Notification | null>(null);
 
     const pageSize = 12;
-    const isLoggedIn = !!user;
 
     const showNotification = (message: string, type: NotificationType = 'success') => {
         setNotification({ message, type });
@@ -137,10 +136,9 @@ export default function WineCatalog({ user }: WineCatalogProps) {
         try {
             let wineData: Wine[], totalPages: number, total: number;
 
-            const username = user?.username;
             let cellarWines: Wine[] = [];
-            if (username) {
-                cellarWines = await getCellarWines(username);
+            if (isLoggedIn) {
+                cellarWines = await getCellarWines();
             }
             if (activeTab === 'catalog') {
                 const data = await searchWines({
@@ -175,11 +173,10 @@ export default function WineCatalog({ user }: WineCatalogProps) {
 
     const handleCellarToggle = async (wine: Wine) => {
         try {
-            const username = user?.username;
-            if (!username) return;
+            if (!isLoggedIn) return;
 
             if (cellarWines.has(wine.id)) {
-                await removeFromCellar(username, wine.id);
+                await removeFromCellar(wine.id);
                 setCellarWines(prev => {
                     const next = new Set(prev);
                     next.delete(wine.id);
@@ -191,7 +188,7 @@ export default function WineCatalog({ user }: WineCatalogProps) {
                 }
                 showNotification(`${wine.title} has been removed from your cellar.`);
             } else {
-                await addToCellar(username, wine.id);
+                await addToCellar(wine.id);
                 setCellarWines(prev => new Set([...prev, wine.id]));
                 showNotification(`${wine.title} has been added to your cellar.`);
             }
@@ -205,7 +202,7 @@ export default function WineCatalog({ user }: WineCatalogProps) {
         setWines([]);
         setTotalPages(0);
         fetchData(1);
-    }, [activeTab, user]);
+    }, [activeTab, isLoggedIn]);
 
     const tabs = [
         { id: 'catalog' as TabType, name: 'Wine Catalog' },

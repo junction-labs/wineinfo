@@ -33,7 +33,7 @@ if __name__ == "__main__":
     if not os.path.exists(service_settings.data_path):
         os.mkdir(service_settings.data_path)
 
-    persist_service = PersistServiceImpl(service_settings, True)   
+    persist_service = PersistServiceImpl(service_settings, True)
     catalog_service = CatalogServiceImpl(service_settings, True)
     recs_service = RecsServiceImpl(service_settings, True)
     search_service = SearchServiceImpl(service_settings, True)

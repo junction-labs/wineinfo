@@ -9,7 +9,7 @@ import sys
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
 )
-from python_services.app.common.api import SEARCH_SERVICE__SEARCH
+from python_services.app.common.api import SEARCH_SERVICE
 
 
 search: config.Service = {
@@ -23,7 +23,7 @@ route: config.Route = {
     "hostnames": [service_hostname(search)],
     "rules": [
         {
-            "matches": [{"path": {"value": SEARCH_SERVICE__SEARCH}}],
+            "matches": [{"path": {"value": SEARCH_SERVICE["search"]["path"]}}],
             "timeouts": {
                 "backend_request": 0.1,
             },
@@ -42,7 +42,7 @@ route: config.Route = {
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
     method="GET",
-    url="http://" + service_hostname(search) + SEARCH_SERVICE__SEARCH + "?term=foo",
+    url="http://" + service_hostname(search) + SEARCH_SERVICE["search"]["path"] + "?term=foo",
     headers={},
 )
 rule = matched["rules"][rule_idx]

@@ -1,7 +1,7 @@
-from typing import Dict, List, Tuple
+from typing import List, Tuple
+import typing
 from pydantic import BaseModel
-from pydantic import TypeAdapter
-from .http_caller import HttpCaller
+
 
 class Wine(BaseModel):
     id: int | None
@@ -31,42 +31,78 @@ class PaginatedList[T](BaseModel):
         generic_types_only = True
 
 
-# GET, params = list[int], response = List[Wine]
-CAT_SERVICE__GET_WINE = "/wines/"
+# These classes today are used for documentation purposes
+# but ideally they would also generate the RemoteService classes
+class ServiceMethodDef(typing.TypedDict):
+    method: str
+    path: str
+    params: BaseModel | None
+    response: BaseModel | List[BaseModel] | None
 
-# GET, params = none, int, response = PaginatedList[Wine]
-CAT_SERVICE__GET_ALL_WINES_PAGINATED = "/wines/batch/"
+
+class GetWineRequest(BaseModel):
+    ids: List[int]
+
+
+class GetAllWinesPaginatedRequest(BaseModel):
+    page: int
+    page_size: int
+
+
+CATALOG_SERVICE = {
+    "get_wine": ServiceMethodDef(
+        method="GET",
+        path="/wines/",
+        params=GetWineRequest,
+        response=List[Wine],
+    ),
+    "get_all_wines_paginated": ServiceMethodDef(
+        method="GET",
+        path="/wines/batch/",
+        params=GetAllWinesPaginatedRequest,
+        response=PaginatedList[Wine],
+    ),
+}
+
 
 class SearchRequest(BaseModel):
     query: str
     page: int = 1
     page_size: int = 20
 
-# GET, params = SearchRequest, response = PaginatedList[int]
-SEARCH_SERVICE__SEARCH = "/search/"
+
+SEARCH_SERVICE = {
+    "search": ServiceMethodDef(
+        method="GET",
+        path="/search/",
+        params=SearchRequest,
+        response=PaginatedList[int],
+    )
+}
+
 
 class RecsRequest(BaseModel):
     query: str
     limit: int = 20
 
-# GET, params = RecsRequest, response = PaginatedList[int]
-RECS_SERVICE__GET_RECOMMENDATIONS = "/recommendations/"
+
+RECS_SERVICE = {
+    "get_recommendations": ServiceMethodDef(
+        method="GET",
+        path="/recommendations/",
+        params=RecsRequest,
+        response=PaginatedList[int],
+    )
+}
+
 
 class SQLRequest(BaseModel):
     query: str
     params: list[str | int] | None
 
-# POST, body = SQLRequest, response = dict
-PERSIST_SERVICE__DO_SQL = "/do_sql/"
 
-#
-# This is the only one called from python at the moment
-#
-class RemotePersistService:
-    def __init__(self, caller: HttpCaller):
-        self.caller = caller
-
-    def do_sql(self, headers: Dict, sql_request: SQLRequest) -> List[Tuple]:
-        return TypeAdapter(List[Tuple]).validate_python(
-            self.caller.post(headers, PERSIST_SERVICE__DO_SQL, sql_request)
-        )
+PERSIST_SERVICE = {
+    "do_sql": ServiceMethodDef(
+        method="POST", path="/do_sql/", params=SQLRequest, response=List[Tuple]
+    )
+}

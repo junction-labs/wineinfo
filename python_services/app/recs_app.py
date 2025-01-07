@@ -5,16 +5,19 @@ import time
 import chromadb
 from collections import deque
 from typing import Deque, Dict, List
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI
+
+from .common.http_client import HttpClient
 from .common.config import ServiceSettings
-from .common.api import RecsRequest, Wine, RECS_SERVICE__GET_RECOMMENDATIONS
+from .common.api import GetWineRequest, RecsRequest, Wine, RECS_SERVICE
+from .common.api_stubs import CatalogService
+from .common.baggage import create_baggage_middleware, create_baggage_session
 
 
 class RecsServiceImpl:
-
     def __init__(self, settings: ServiceSettings, reset: bool = False):
         self.recs_demo_failure = settings.recs_demo_failure
-        path = os.path.join(settings.data_path, "recs_data")        
+        path = os.path.join(settings.data_path, "recs_data")
         if reset and os.path.exists(path):
             shutil.rmtree(path)
         self.chroma_client = chromadb.PersistentClient(path)
@@ -31,8 +34,8 @@ class RecsServiceImpl:
         self.failure_until: float = 0
         self.WINDOW_SECONDS = 2
         self.QUERY_THRESHOLD = 5
-        self.FAILURE_DURATION = 5    
-   
+        self.FAILURE_DURATION = 5
+
     def open_index(self):
         self.batch_ids = []
         self.batch_documents = []
@@ -54,34 +57,56 @@ class RecsServiceImpl:
     def _check_failure_condition(self, query: str) -> bool:
         current_time = time.time()
         if current_time < self.failure_until:
-            raise RuntimeError("Service temporarily unavailable due to high query volume")
-        while (self.query_history and 
-               current_time - self.query_history[0]["timestamp"] > self.WINDOW_SECONDS):
+            raise RuntimeError(
+                "Service temporarily unavailable due to high query volume"
+            )
+        while (
+            self.query_history
+            and current_time - self.query_history[0]["timestamp"] > self.WINDOW_SECONDS
+        ):
             self.query_history.popleft()
-        self.query_history.append({"query":query, "timestamp":current_time })
+        self.query_history.append({"query": query, "timestamp": current_time})
         unique_queries = len(set(record["query"] for record in self.query_history))
 
         if unique_queries > self.QUERY_THRESHOLD:
             self.failure_until = current_time + self.FAILURE_DURATION
-            raise RuntimeError("Service temporarily unavailable due to high query volume")
+            raise RuntimeError(
+                "Service temporarily unavailable due to high query volume"
+            )
 
-# only reason we do this is so we can use implementation 
+
+# only reason we do this is so we can use implementation
 # class in the data gen binary
 @lru_cache()
 def get_impl() -> RecsServiceImpl:
     return RecsServiceImpl(ServiceSettings())
-app = FastAPI()
 
-@app.get(RECS_SERVICE__GET_RECOMMENDATIONS)
+
+app = FastAPI()
+app.middleware("http")(create_baggage_middleware())
+session = create_baggage_session()
+settings = ServiceSettings()
+catalog_service = CatalogService(
+    HttpClient(settings.catalog_service, settings.use_junction)
+)
+
+
+@app.get(RECS_SERVICE["get_recommendations"]["path"])
 def get_recommendations(
-    request: Request, 
-    params: RecsRequest = Depends(),
-    impl: RecsServiceImpl = Depends(get_impl)) -> List[int]:
-        q = {}
-        q["n_results"] = ( params.limit )
-        q["query_texts"] = [params.query]
-        results = impl.collection.query(**q)
-        all_ids = [int(id) for id in results["ids"][0]]
-        if impl.recs_demo_failure:
-            impl._check_failure_condition(params.query)
-        return all_ids[: params.limit]
+    params: RecsRequest = Depends(), impl: RecsServiceImpl = Depends(get_impl)
+) -> List[int]:
+    q = {}
+    q["n_results"] = params.limit
+    q["query_texts"] = [params.query]
+    results = impl.collection.query(**q)
+    all_ids = [int(id) for id in results["ids"][0]]
+    if impl.recs_demo_failure:
+        impl._check_failure_condition(params.query)
+
+    # in a real RAG, we would call into catalog and get more
+    # info and iterate. In this case we just want to demonstrate
+    # we can call the catalog service and get junction routing
+    if len(all_ids) > 0:
+        catalog_service.get_wine(GetWineRequest(ids=all_ids))
+
+    return all_ids[: params.limit]

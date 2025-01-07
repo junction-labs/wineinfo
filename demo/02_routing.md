@@ -136,7 +136,7 @@ we'll declare a match on headers that only matches when the "x-username" header
 has exactly the value "admin".
 
 ```python
-is_admin = junction.config.RouteMatch(headers = [{"name": "x-username", "value": "admin"}])
+is_admin = junction.config.RouteMatch(headers = [{"name": "baggage", "value": "username=admin"}])
 ```
 
 The first rule in the rules list only has one match on `is_admin` routing to
@@ -218,7 +218,7 @@ This double-checks that:
     routes=[route],
     method="GET",
     url="http://" + service_hostname(catalog) + "/",
-    headers={"x-username": "admin"},
+    headers={"baggage": "username=admin"},
 )
 assert rule_idx == 0
 assert backend == { **catalog_next, "port": 80 }

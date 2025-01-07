@@ -7,9 +7,11 @@ from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, TEXT, ID, NUMERIC
 from whoosh.qparser import MultifieldParser
 from typing import Annotated
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query
+
+from .common.baggage import create_baggage_middleware, create_baggage_session
 from .common.config import ServiceSettings
-from .common.api import SearchRequest, PaginatedList, Wine, SEARCH_SERVICE__SEARCH
+from .common.api import SearchRequest, PaginatedList, Wine, SEARCH_SERVICE
 
 
 class SearchServiceImpl:
@@ -61,48 +63,52 @@ class SearchServiceImpl:
         self.writer.commit()
         del self.writer
 
-# only reason we do this is so we can use implementation 
+
+# only reason we do this is so we can use implementation
 # class in the data gen binary
 @lru_cache()
 def get_impl() -> SearchServiceImpl:
     return SearchServiceImpl(ServiceSettings())
+
+
 app = FastAPI()
+app.middleware("http")(create_baggage_middleware())
+session = create_baggage_session()
 
-@app.get(SEARCH_SERVICE__SEARCH)
+
+@app.get(SEARCH_SERVICE["search"]["path"])
 def search(
-    request: Request, 
     params: Annotated[SearchRequest, Query()],
-    impl: SearchServiceImpl = Depends(get_impl)) -> PaginatedList[int]:
+    impl: SearchServiceImpl = Depends(get_impl),
+) -> PaginatedList[int]:
+    if impl.search_demo_latency:
+        if random.random() < 0.5:
+            time.sleep(10)
 
-        if impl.search_demo_latency:
-            if random.random() < 0.5:
-                time.sleep(10)
-
-        with impl.index.searcher() as searcher:
-            fields = [
-                "title",
-                "description",
-                "variety",
-                "winery",
-                "country",
-                "province",
-                "region_1",
-                "region_2",
-            ]
-            parser = MultifieldParser(fields, impl.index.schema)
-            query = parser.parse(params.query)
-            start = (params.page - 1) * params.page_size
-            results = searcher.search(query, limit=None)
-            return PaginatedList[int].model_validate(
-                {
-                    "items": [
-                        int(hit["id"])
-                        for hit in results[start : start + params.page_size]
-                    ],
-                    "total": len(results),
-                    "page": params.page,
-                    "page_size": params.page_size,
-                    "total_pages": (len(results) + params.page_size - 1)
-                    // params.page_size,
-                }
-            )
+    with impl.index.searcher() as searcher:
+        fields = [
+            "title",
+            "description",
+            "variety",
+            "winery",
+            "country",
+            "province",
+            "region_1",
+            "region_2",
+        ]
+        parser = MultifieldParser(fields, impl.index.schema)
+        query = parser.parse(params.query)
+        start = (params.page - 1) * params.page_size
+        results = searcher.search(query, limit=None)
+        return PaginatedList[int].model_validate(
+            {
+                "items": [
+                    int(hit["id"]) for hit in results[start : start + params.page_size]
+                ],
+                "total": len(results),
+                "page": params.page,
+                "page_size": params.page_size,
+                "total_pages": (len(results) + params.page_size - 1)
+                // params.page_size,
+            }
+        )

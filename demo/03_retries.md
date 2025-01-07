@@ -83,7 +83,7 @@ total attempts, and that we should do exponential backoff between each request
 starting at roughly 100ms.
 
 This Route looks pretty similar to the Routes we used when [shifting
-trafic](./02_routing.md) because `retries` and `timeouts` are also just fields
+traffic](./02_routing.md) because `retries` and `timeouts` are also just fields
 on a Route.
 
 ### Unit Testing

@@ -1,6 +1,7 @@
 import { Wine, PaginatedList, SearchRequest, RecsRequest } from '@/lib/types';
 import { HttpClient } from '@/lib/httpClient';
 import { settings } from '@/lib/config';
+import { Session } from 'next-auth';
 
 
 export class CatalogService {
@@ -10,16 +11,19 @@ export class CatalogService {
         this.client = new HttpClient(settings.catalogService);
     }
 
-    async getWine(ids: number[], username?: string): Promise<Wine[]> {
-        return this.client.get('/wines/', { ids }, username);
+    async getWine(
+        baggage: string[],
+        ids: number[]
+    ): Promise<Wine[]> {
+        return this.client.get(baggage, '/wines/', { ids });
     }
 
     async getAllWinesPaginated(
+        baggage: string[],
         page: number,
-        page_size: number,
-        username?: string
+        page_size: number
     ): Promise<PaginatedList<Wine>> {
-        return this.client.get('/wines/batch/', { page, page_size }, username);
+        return this.client.get(baggage, '/wines/batch/', { page, page_size });
     }
 }
 
@@ -31,10 +35,10 @@ export class SearchService {
     }
 
     async search(
-        request: SearchRequest,
-        username?: string
+        baggage: string[],
+        request: SearchRequest
     ): Promise<PaginatedList<number>> {
-        return this.client.get('/search/', request, username);
+        return this.client.get(baggage, '/search/', request);
     }
 }
 
@@ -46,10 +50,10 @@ export class RecsService {
     }
 
     async getRecommendations(
-        request: RecsRequest,
-        username?: string
+        baggage: string[],
+        request: RecsRequest
     ): Promise<number[]> {
-        return this.client.get('/recommendations/', request, username);
+        return this.client.get(baggage, '/recommendations/', request);
     }
 }
 
@@ -61,15 +65,14 @@ export class PersistService {
     }
 
     async doSql<T>(
+        baggage: string[],
         query: string,
-        params: (string | number)[],
-        username?: string
+        params: (string | number)[], 
     ): Promise<T[]> {
-        return this.client.post('/do_sql/', { query, params }, username);
+        return this.client.post(baggage, '/do_sql/', { query, params });
     }
 }
 
-// Initialize services
 export const catalogService = new CatalogService();
 export const searchService = new SearchService();
 export const recsService = new RecsService();

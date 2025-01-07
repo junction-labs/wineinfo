@@ -33,8 +33,3 @@ export interface RecsRequest {
     query: string;
     limit: number;
 }
-
-export interface User {
-    username: string;
-    isAdmin: boolean;
-}
