@@ -35,7 +35,6 @@ def make_request(
     verbose: bool,
 ):
     next_request_time = time.time()
-
     while not stop_event.is_set():
         scheduled_time = next_request_time
         now = time.time()
@@ -45,9 +44,12 @@ def make_request(
                 break
 
         try:
+            id = threading.get_ident()
             actual_start = time.time()
-            response = requests.get(url)
+            if verbose:
+                print(f"event:starting, thread_id: {id}, url: {url}")
 
+            response = requests.get(url)
             stats.count_response(status_code=response.status_code)
 
             if verbose:
@@ -55,8 +57,8 @@ def make_request(
                 response_time = round(end_time - actual_start, 3)
                 relative_time = round(end_time - start_time, 3)
                 print(
-                    f"time: {relative_time}, "
-                    f"query: {url}, response_time: {response_time}, "
+                    f"event:returned, thread_id: {id}, time: {relative_time}, "
+                    f"url: {url}, response_time: {response_time}, "
                     f"response_code: {response.status_code}"
                 )
 
@@ -78,20 +80,8 @@ def print_final_stats(stats: Stats):
         print(f"Total Errors: {stats.error_count}")
 
 
-def main(duration_seconds: Optional[int], period: int, verbose: bool):
-    queries = [
-        "red",
-        "white",
-        "rose",
-        "pinot noir",
-        "france",
-        "italy",
-        "germany",
-        "greece",
-        "australia",
-        "portugal",
-    ]
-    urls = [f"http://localhost:8011/wines/recommendations?query={q}" for q in queries]
+def main(url, vals, duration_seconds: Optional[int], period: int, verbose: bool):
+    urls = [f"{url}{q}" for q in vals]
 
     start_time = time.time()
     stop_event = threading.Event()
@@ -111,7 +101,6 @@ def main(duration_seconds: Optional[int], period: int, verbose: bool):
                 )
                 for i in range(len(urls))
             ]
-
             try:
                 if duration_seconds:
                     time.sleep(duration_seconds)
@@ -138,5 +127,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--verbose", action="store_true", help="Print detailed per-request results"
     )
+    parser.add_argument(
+        "--url", type=str, help="The url prefix to request", default="http://localhost:8010/api/wine/recs?query="
+    )
+    parser.add_argument(
+        "--vals", type=str, help="Comma separated list to attach to end of url", default="red,white,rose,pinot noir,france,italy,germany,greece,australia,portugal"
+    )
     args = parser.parse_args()
-    main(args.duration, args.period, args.verbose)
+    vals = args.vals.split(",")
+    main(args.url, vals, args.duration, args.period, args.verbose)

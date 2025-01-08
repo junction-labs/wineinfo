@@ -26,7 +26,7 @@ spec:
             match:
               - headerName: baggage
                 headerValue:
-                  regex: username=.*username=admin(,|$).*
+                  regex: .*username=admin(,|$).*
         - pause: {}
         - setCanaryScale:
             matchTrafficWeight: true

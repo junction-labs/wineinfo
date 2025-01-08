@@ -10,10 +10,10 @@ enable quick rollbacks.
 
 Now, this may sound exactly like what we did in the routing demo. That is
 correct, except Argo Rollouts allows us to put in place standard policies that
-can be followed for all rollouts to production, making sure they all
-go through the same safety steps. No more YOLO.
+can be followed for all rollouts to production, making sure they all go through
+the same safety steps. No more YOLO.
 
-In our case, we are going to put the following policy on the catalog service's 
+In our case, we are going to put the following policy on the catalog service's
 rollouts:
 - Rollout to admin user, require explicit sign off before going further
 - Rollout to 25% of traffic, require explicit sign off before going further
@@ -43,7 +43,7 @@ In Argo Rollout terms, this is expressed as:
 ## Setting up Argo Rollouts
 
 To install the Argo Rollouts controller, its command line tool, its CRDs, and
-its policies for manipulating the Gateway API, run:
+its auth policy needed for manipulating the Gateway API, run:
 
 ```bash
 brew install argoproj/tap/kubectl-argo-rollouts
@@ -54,13 +54,15 @@ kubectl patch deployment argo-rollouts -n argo-rollouts --type='json' -p='[{"op"
 kubectl rollout restart deploy -n argo-rollouts
 ```
 
-Now to migrate the catalog service service to use our Argo Rollout
-policy rather than a Deployment:
+Now migrate the catalog service service to use our Argo Rollout policy rather
+than a Deployment. This is two steps as we want to migrate to a Rollout without
+needing to follow the policy, then put in place the policy:
 
 ```bash
 kubectl apply -f demo/deploy/05_argo_rollouts_catalog_migrate.yaml
 kubectl argo rollouts status wineinfo-catalog --watch
 kubectl delete deployment/wineinfo-catalog
+echo Migration done, now put in place policy
 kubectl apply -f demo/deploy/05_argo_rollouts_catalog_policy.yaml
 ```
 
@@ -92,7 +94,7 @@ NAME                                          KIND        STATUS     AGE  INFO
       └──□ wineinfo-catalog-765b5c6499-mjrmb  Pod         ✔ Running  12s  ready:1/1
 ```
 
-We also switched to our buggy deployment to set up the demo. You can verify
+This also switched the running service to our buggy deployment. You can verify
 character encoding is once again borked:
 
 ![mojibake-homepage](./images/mojibake-search.jpg)
@@ -107,7 +109,37 @@ kubectl patch rollout wineinfo-catalog --type json -p '[{"op": "remove", "path":
 ```
 
 The Argo Rollouts operator sees this and starts our deployment. You can see it
-with `kubectl argo rollouts get rollout wineinfo-catalog`. 
+with:
+```bash
+$ kubectl argo rollouts get rollout wineinfo-catalog
+Name:            wineinfo-catalog
+Namespace:       default
+Status:          ॥ Paused
+Message:         CanaryPauseStep
+Strategy:        Canary
+  Step:          2/8
+  SetWeight:     0
+  ActualWeight:  0
+Images:          wineinfo-python:latest (canary, stable)
+Replicas:
+  Desired:       4
+  Current:       5
+  Updated:       1
+  Ready:         5
+  Available:     5
+
+NAME                                          KIND        STATUS     AGE    INFO
+⟳ wineinfo-catalog                            Rollout     ॥ Paused   9m56s
+├──# revision:2
+│  └──⧉ wineinfo-catalog-7f7fcf8f6f           ReplicaSet  ✔ Healthy  8m     canary
+│     └──□ wineinfo-catalog-7f7fcf8f6f-wm44m  Pod         ✔ Running  8m     ready:1/1
+└──# revision:1
+   └──⧉ wineinfo-catalog-7864654b56           ReplicaSet  ✔ Healthy  9m56s  stable
+      ├──□ wineinfo-catalog-7864654b56-bx7q7  Pod         ✔ Running  9m56s  ready:1/1
+      ├──□ wineinfo-catalog-7864654b56-g6v2h  Pod         ✔ Running  9m56s  ready:1/1
+      ├──□ wineinfo-catalog-7864654b56-wlpfp  Pod         ✔ Running  9m56s  ready:1/1
+      └──□ wineinfo-catalog-7864654b56-zg2cc  Pod         ✔ Running  9m56s  ready:1/1
+``` 
 
 This first step rolls out only to admin user, so go to the UI, change to Admin, 
 and verify the bug is fixed:
@@ -158,9 +190,9 @@ Spec:
       Weight:  0
     Matches:
       Headers:
-        Name:   x-username
-        Type:   Exact
-        Value:  admin
+        Name:   baggage
+        Type:   RegularExpression
+        Value:  .*username=admin(,|$).*
       Path:
         Type:   PathPrefix
         Value:  /
@@ -168,15 +200,15 @@ Spec:
 
 ## Argo Rollouts to the (safe) rescue - step 2 and 3
 
-We have verified the fix is working. Promote to the next step with:
+We have verified the fix is working. Promote to 25% of the fleet with:
 ```bash
 kubectl argo rollouts promote wineinfo-catalog
 ```
 
-That promotes to 25% of the fleet. Now you should be able to go to a non-admin
-user, and see that 25% of the time your search is getting the right result. 
+Now you should be able to go to a non-admin user, and see that 25% of the time 
+your search is getting the right result. 
 
-So  finish the deployment to 100% with one more promotion:
+So finish the deployment to 100% with one more promotion:
 ```bash
 kubectl argo rollouts promote wineinfo-catalog
 ```

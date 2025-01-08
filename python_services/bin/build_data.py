@@ -7,10 +7,10 @@ sys.path.append(
 )
 from python_services.app.common.config import ServiceSettings
 from python_services.app.common.api import Wine
-from python_services.app.catalog_app import CatalogServiceImpl
-from python_services.app.recs_app import RecsServiceImpl
-from python_services.app.search_app import SearchServiceImpl
-from python_services.app.persist_app import PersistServiceImpl
+from python_services.app.services.catalog_service_impl import CatalogServiceImpl
+from python_services.app.services.recs_service_impl import RecsServiceImpl
+from python_services.app.services.search_service_impl import SearchServiceImpl
+from python_services.app.services.persist_service_impl import PersistServiceImpl
 import csv
 import argparse
 
