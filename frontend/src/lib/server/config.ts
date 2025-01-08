@@ -1,6 +1,3 @@
-import type { Session } from 'next-auth'
-
-
 interface ServiceSettings {
     catalogService: string;
     searchService: string;
@@ -18,12 +15,3 @@ export const settings: ServiceSettings = {
 };
 
 
-export function genBaggage(headers: Headers, session: Session | null): string[] {
-    const requestId = headers.get('x-request-id') || crypto.randomUUID()
-    return [
-        'request-id=' + requestId,
-        'user-id=' + (session?.user?.id || ''),
-        'username=' + (session?.user?.name || ''),
-        'requestId=' + requestId
-    ]
-}

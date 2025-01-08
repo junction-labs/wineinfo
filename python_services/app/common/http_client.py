@@ -37,7 +37,7 @@ class HttpClient:
         self, path: str, request: Dict, options: HttpClientOptions = HttpClientOptions()
     ) -> Dict:
         headers = self._get_headers("GET", options)
-        response = self.session.get(self.base_url + "/" + path, params=request, headers=headers)
+        response = self.session.get(self.base_url + path, params=request, headers=headers)
         response.raise_for_status()
         return response.json()
 
@@ -45,6 +45,6 @@ class HttpClient:
         self, path: str, request: Dict, options: HttpClientOptions = HttpClientOptions()
     ) -> Dict:
         headers = self._get_headers("POST", options)
-        response = self.session.post(self.base_url + "/" + path, json=request, headers=headers)
+        response = self.session.post(self.base_url + path, json=request, headers=headers)
         response.raise_for_status()
         return response.json()

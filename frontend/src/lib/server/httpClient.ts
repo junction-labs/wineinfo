@@ -48,7 +48,7 @@ export class HttpClient {
 
     private async request<T>(
         method: 'GET' | 'POST',
-        url: string,
+        path: string,
         data?: any,
         options: HttpClientOptions = emptyOptions()
     ): Promise<T> {
@@ -71,12 +71,12 @@ export class HttpClient {
                         params.append(key, value.toString());
                     }
                 });
-                url = `${url}?${params.toString()}`;
+                path = `${path}?${params.toString()}`;
             } else if (data) {
                 request.body = JSON.stringify(data);
             }
 
-            const response = await this.fetch(`${this.baseUrl}/${url}`, request);
+            const response = await this.fetch(`${this.baseUrl}${path}`, request);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }

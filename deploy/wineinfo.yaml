@@ -11,6 +11,7 @@ data:
   SEARCH_SERVICE: "http://wineinfo-search.default.svc.cluster.local"
   RECS_SERVICE: "http://wineinfo-recs.default.svc.cluster.local"
   PERSIST_SERVICE: "http://wineinfo-persist.default.svc.cluster.local"
+  NEXTAUTH_URL: "http://localhost:8010"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,13 +32,13 @@ spec:
         service: frontend
     spec:
       containers:
-      - name: wineinfo-frontend
-        image: wineinfo-frontend:latest
-        imagePullPolicy: IfNotPresent
-        envFrom:
-        - configMapRef:
-            name: wineinfo-config
-        command: ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
+        - name: wineinfo-frontend
+          image: wineinfo-frontend:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+          command: ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
 ---
 apiVersion: v1
 kind: Service
@@ -72,13 +73,22 @@ spec:
         service: catalog
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/catalog_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -112,13 +122,22 @@ spec:
         service: persist
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/persist_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/persist_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -152,13 +171,22 @@ spec:
         service: recs
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/recs_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/recs_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -192,13 +220,22 @@ spec:
         service: search
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/search_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/search_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -212,4 +249,3 @@ spec:
   ports:
     - port: 80
       targetPort: 8000
-

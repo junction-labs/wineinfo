@@ -139,8 +139,9 @@ Our goal here is to only route logged-in administrators to the new version of
 the catalog service. In our Wineinfo services, when someone is logged in, we add
 the 'username' header to every request and pass that along, which we can then
 match in a Junction route. To do so we put the username field in a thing called
-[baggage][FIXME], which we explain below. As that is a list of comma-separated 
-k=v pairs, we must select from it with a regular expression like:
+baggage, [which we explain below](#Why-do-we-use-baggage?). Essentially it is a 
+list of comma-separated `k=v` pairs in a header named "baggage", so we match from 
+it with a regular expression like:
 
 ```python
 is_admin = config.RouteMatch(headers=[{
@@ -270,6 +271,7 @@ demo, run:
 
 ```bash
 kubectl delete httproute.gateway.networking.k8s.io/wineinfo-catalog
+kubectl delete -f demo/deploy/02_routing.yaml
 kubectl apply -f deploy/wineinfo.yaml
 ```
 
@@ -281,7 +283,7 @@ If you're fully done, you can fully delete your k3d cluster with:
 k3d cluster delete junction-wineinfo
 ```
 
-## Why do we match the header "baggage"?
+## Why do we use baggage?
 
 This is just for those curious. Junction can match any HTTP header name, so 
 for instance we could have matched `{"name": "x-username", "value": "admin"}`

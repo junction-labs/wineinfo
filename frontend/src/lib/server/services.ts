@@ -11,7 +11,7 @@ export class CatalogService {
         ids: number[],
         options: HttpClientOptions
     ): Promise<Wine[]> {
-        return this.client.get('wines/', { ids }, options);
+        return this.client.get('/wines/', { ids }, options);
     }
 
     async getAllWinesPaginated(
@@ -19,7 +19,7 @@ export class CatalogService {
         page_size: number,
         options: HttpClientOptions
     ): Promise<PaginatedList<Wine>> {
-        return this.client.get('wines/batch/', { page, page_size }, options);
+        return this.client.get('/wines/batch/', { page, page_size }, options);
     }
 }
 
@@ -31,7 +31,7 @@ export class SearchService {
         request: SearchRequest,
         options: HttpClientOptions
     ): Promise<PaginatedList<number>> {
-        return this.client.get('search/', request, options);
+        return this.client.get('/search/', request, options);
     }
 }
 
@@ -43,7 +43,7 @@ export class RecsService {
         request: RecsRequest,
         options: HttpClientOptions
     ): Promise<number[]> {
-        return this.client.get('recommendations/', request, options);
+        return this.client.get('/recommendations/', request, options);
     }
 }
 
@@ -56,7 +56,7 @@ export class PersistService {
         params: (string | number)[],
         options: HttpClientOptions
     ): Promise<T[]> {
-        return this.client.post('do_sql/', { query, params }, options);
+        return this.client.post('/do_sql/', { query, params }, options);
     }
 }
 
