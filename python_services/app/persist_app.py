@@ -6,7 +6,7 @@ from typing import List, Tuple
 from fastapi import Depends, FastAPI
 from .common.config import ServiceSettings
 from .common.api import SQLRequest, PERSIST_SERVICE
-from .common.baggage import create_baggage_middleware, create_baggage_session
+from .common.baggage import create_baggage_middleware
 
 
 class PersistServiceImpl:
@@ -38,7 +38,6 @@ def get_impl() -> PersistServiceImpl:
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
-session = create_baggage_session()
 
 
 @app.post(PERSIST_SERVICE["do_sql"]["path"])

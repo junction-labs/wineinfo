@@ -9,7 +9,7 @@ from whoosh.qparser import MultifieldParser
 from typing import Annotated
 from fastapi import Depends, FastAPI, Query
 
-from .common.baggage import create_baggage_middleware, create_baggage_session
+from .common.baggage import create_baggage_middleware
 from .common.config import ServiceSettings
 from .common.api import SearchRequest, PaginatedList, Wine, SEARCH_SERVICE
 
@@ -73,7 +73,6 @@ def get_impl() -> SearchServiceImpl:
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
-session = create_baggage_session()
 
 
 @app.get(SEARCH_SERVICE["search"]["path"])

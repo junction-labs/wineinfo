@@ -1,79 +1,66 @@
 import { Wine, PaginatedList, SearchRequest, RecsRequest } from '@/lib/api_types';
-import { HttpClient } from '@/lib/server/httpClient';
+import { HttpClient, HttpClientOptions } from '@/lib/server/httpClient';
 import { settings } from '@/lib/server/config';
 
 
 export class CatalogService {
-    private client: HttpClient;
-
-    constructor() {
-        this.client = new HttpClient(settings.catalogService);
+    constructor(private client: HttpClient) {
     }
 
     async getWine(
-        baggage: string[],
-        ids: number[]
+        ids: number[],
+        options: HttpClientOptions
     ): Promise<Wine[]> {
-        return this.client.get(baggage, '/wines/', { ids });
+        return this.client.get('wines/', { ids }, options);
     }
 
     async getAllWinesPaginated(
-        baggage: string[],
         page: number,
-        page_size: number
+        page_size: number,
+        options: HttpClientOptions
     ): Promise<PaginatedList<Wine>> {
-        return this.client.get(baggage, '/wines/batch/', { page, page_size });
+        return this.client.get('wines/batch/', { page, page_size }, options);
     }
 }
 
 export class SearchService {
-    private client: HttpClient;
-
-    constructor() {
-        this.client = new HttpClient(settings.searchService);
+    constructor(private client: HttpClient) {
     }
 
     async search(
-        baggage: string[],
-        request: SearchRequest
+        request: SearchRequest,
+        options: HttpClientOptions
     ): Promise<PaginatedList<number>> {
-        return this.client.get(baggage, '/search/', request);
+        return this.client.get('search/', request, options);
     }
 }
 
 export class RecsService {
-    private client: HttpClient;
-
-    constructor() {
-        this.client = new HttpClient(settings.recsService);
+    constructor(private client: HttpClient) {
     }
 
     async getRecommendations(
-        baggage: string[],
-        request: RecsRequest
+        request: RecsRequest,
+        options: HttpClientOptions
     ): Promise<number[]> {
-        return this.client.get(baggage, '/recommendations/', request);
+        return this.client.get('recommendations/', request, options);
     }
 }
 
 export class PersistService {
-    private client: HttpClient;
-
-    constructor() {
-        this.client = new HttpClient(settings.persistService);
+    constructor(private client: HttpClient) {
     }
 
     async doSql<T>(
-        baggage: string[],
         query: string,
         params: (string | number)[],
+        options: HttpClientOptions
     ): Promise<T[]> {
-        return this.client.post(baggage, '/do_sql/', { query, params });
+        return this.client.post('do_sql/', { query, params }, options);
     }
 }
 
-export const catalogService = new CatalogService();
-export const searchService = new SearchService();
-export const recsService = new RecsService();
-export const persistService = new PersistService();
-export const useJunction = settings.useJunction === true;
+export const catalogService = new CatalogService(new HttpClient(settings.catalogService, settings.useJunction));
+export const searchService = new SearchService(new HttpClient(settings.searchService, settings.useJunction));
+export const recsService = new RecsService(new HttpClient(settings.recsService, settings.useJunction));
+export const persistService = new PersistService(new HttpClient(settings.persistService, settings.useJunction));

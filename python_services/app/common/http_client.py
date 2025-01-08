@@ -1,8 +1,13 @@
-from fastapi import HTTPException
 from typing import Dict, Literal
 import junction.requests
 import requests
 from .baggage import baggage_mgr
+
+
+class HttpClientOptions:
+    headers: Dict = {}
+    use_baggage_mgr: bool = True
+    baggage_updates: Dict[str, str] = {}
 
 
 class HttpClient:
@@ -12,39 +17,34 @@ class HttpClient:
             junction.requests.Session() if use_junction else requests.Session()
         )
 
-    def request(
-        self,
-        method: Literal["get", "post", "GET", "POST"],
-        url: str,
-        request: Dict,
+    def _get_headers(
+        self, method: Literal["GET", "POST"], options: HttpClientOptions
     ) -> Dict:
-        try:
-            method = method.lower()
-            headers = {}
+        headers = options.headers.copy()
+        if method == "POST":
+            headers["Content-Type"] = "application/json"
+        baggage = {}
+        if options.use_baggage_mgr:
             baggage = baggage_mgr.get_current()
-            if baggage:
-                headers["baggage"] = baggage_mgr.to_headers(baggage)
+        if options.baggage_updates:
+            baggage.update(options.baggage_updates)
+        if len(baggage) > 0:
+            headers["baggage"] = ",".join([f"{k}={v}" for k, v in baggage.items()])
+            print(f"baggage: {headers['baggage']}")
+        return headers
 
-            kwargs = {
-                "headers": headers,
-                "get": {"params": request},
-                "post": {"json": request},
-            }
+    def get(
+        self, path: str, request: Dict, options: HttpClientOptions = HttpClientOptions()
+    ) -> Dict:
+        headers = self._get_headers("GET", options)
+        response = self.session.get(self.base_url + "/" + path, params=request, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
-            response = getattr(self.session, method)(
-                f"{self.base_url}{url}", **kwargs[method]
-            )
-            response.raise_for_status()
-            return response.json()
-
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Remote {method.upper()} request to {url} failed: {str(e)}",
-            )
-
-    def get(self, url: str, request: Dict) -> Dict:
-        return self.request("get", url, request)
-
-    def post(self, url: str, request: Dict) -> Dict:
-        return self.request("post", url, request)
+    def post(
+        self, path: str, request: Dict, options: HttpClientOptions = HttpClientOptions()
+    ) -> Dict:
+        headers = self._get_headers("POST", options)
+        response = self.session.post(self.base_url + "/" + path, json=request, headers=headers)
+        response.raise_for_status()
+        return response.json()

@@ -14,7 +14,11 @@ catalog_next: config.Service = {
     "namespace": "default",
 }
 
-is_admin = config.RouteMatch(headers=[{"name": "baggage", "value": "username=admin"}])
+is_admin = config.RouteMatch(headers=[{
+    "type": "RegularExpression", 
+    "name": "baggage", 
+    "value": ".*username=admin(,|$).*"}
+])
 
 route: config.Route = {
     "id": "wineinfo-catalog",

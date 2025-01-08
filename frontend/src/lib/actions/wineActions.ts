@@ -3,64 +3,64 @@
 import { Wine, PaginatedList, SearchRequest } from '@/lib/api_types';
 import { catalogService, searchService, recsService, persistService } from '@/lib/server/services';
 import { getServerSession } from "next-auth"
-import { genBaggage } from "@/lib/server/config";
 import { authOptions } from "@/lib/auth";
 import { headers } from 'next/headers';
+import { sessionOptions } from '@/lib/server/httpClient';
 
 export async function getCellarWines(): Promise<Wine[]> {
     const session = await getServerSession(authOptions);
-    const baggage = genBaggage(await headers(), session);
+    const options = sessionOptions(await headers(), session);
     if (!session?.user?.id) {
         throw new Error("User not authenticated");
     }
     const result = await persistService.doSql<[number]>(
-        baggage,
         "SELECT wine_id FROM cellar WHERE user_id = ?",
-        [session.user.id]
+        [session.user.id],
+        options
     );
 
     const wineIds = result.map((row: any[]) => row[0]);
-    return wineIds.length > 0 ? await catalogService.getWine(baggage, wineIds) : [];
+    return wineIds.length > 0 ? await catalogService.getWine(wineIds, options) : [];
 }
 
 export async function addToCellar(wineId: number) {
     const session = await getServerSession(authOptions);
-    const baggage = genBaggage(await headers(), session);
+    const options = sessionOptions(await headers(), session);
     if (!session?.user?.id) {
         throw new Error("User not authenticated");
     }
     await persistService.doSql(
-        baggage,
         "INSERT INTO cellar (wine_id, user_id) VALUES (?, ?)",
-        [wineId, session.user.id]
+        [wineId, session.user.id],
+        options
     );
 }
 
 export async function removeFromCellar(wineId: number) {
     const session = await getServerSession(authOptions);
-    const baggage = genBaggage(await headers(), session);
+    const options = sessionOptions(await headers(), session);
     if (!session?.user?.id) {
         throw new Error("User not authenticated");
     }
     await persistService.doSql(
-        baggage,
         "DELETE FROM cellar WHERE wine_id = ? AND user_id = ?",
-        [wineId, session.user.id]
+        [wineId, session.user.id],
+        options
     );
 }
 
 export async function searchWines(params: SearchRequest): Promise<PaginatedList<Wine>> {
     const session = await getServerSession(authOptions);
-    const baggage = genBaggage(await headers(), session);
+    const options = sessionOptions(await headers(), session);
 
     const { query, page, page_size } = params;
     if (!query.trim()) {
-        return await catalogService.getAllWinesPaginated(baggage, page, page_size);
+        return await catalogService.getAllWinesPaginated(page, page_size, options);
     }
 
-    const results = await searchService.search(baggage, params);
+    const results = await searchService.search(params, options);
     const wines = results.items.length > 0
-        ? await catalogService.getWine(baggage, results.items)
+        ? await catalogService.getWine(results.items, options)
         : [];
 
     return {
@@ -74,8 +74,8 @@ export async function searchWines(params: SearchRequest): Promise<PaginatedList<
 
 export async function recommendWines(query: string): Promise<Wine[]> {
     const session = await getServerSession(authOptions);
-    const baggage = genBaggage(await headers(), session);
+    const options = sessionOptions(await headers(), session);
 
-    const wineIds = await recsService.getRecommendations(baggage, { query, limit: 10 });
-    return wineIds.length > 0 ? await catalogService.getWine(baggage, wineIds) : [];
+    const wineIds = await recsService.getRecommendations({ query, limit: 10 }, options);
+    return wineIds.length > 0 ? await catalogService.getWine(wineIds, options) : [];
 }

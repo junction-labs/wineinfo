@@ -29,7 +29,7 @@ In Argo Rollout terms, this is expressed as:
           match:
           - headerName: baggage
             headerValue:
-              exact: username=admin
+              regex: username=.*username=admin(,|$).*
       - pause: {}
       - setCanaryScale:
           matchTrafficWeight: true

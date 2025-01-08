@@ -11,7 +11,7 @@ from .common.http_client import HttpClient
 from .common.config import ServiceSettings
 from .common.api import GetWineRequest, RecsRequest, Wine, RECS_SERVICE
 from .common.api_stubs import CatalogService
-from .common.baggage import create_baggage_middleware, create_baggage_session
+from .common.baggage import create_baggage_middleware
 
 
 class RecsServiceImpl:
@@ -84,7 +84,6 @@ def get_impl() -> RecsServiceImpl:
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
-session = create_baggage_session()
 settings = ServiceSettings()
 catalog_service = CatalogService(
     HttpClient(settings.catalog_service, settings.use_junction)

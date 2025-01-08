@@ -5,7 +5,7 @@ from typing import Annotated, List
 from fastapi import Depends, FastAPI, Query
 from .common.config import ServiceSettings
 from .common.api import PaginatedList, Wine, CATALOG_SERVICE
-from .common.baggage import create_baggage_middleware, create_baggage_session
+from .common.baggage import create_baggage_middleware
 from fastapi import HTTPException
 from typing import List
 
@@ -38,7 +38,6 @@ def get_impl() -> CatalogServiceImpl:
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
-session = create_baggage_session()
 
 
 @app.get(CATALOG_SERVICE["get_wine"]["path"])

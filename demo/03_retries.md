@@ -23,7 +23,7 @@ change both without needing to do a new deployment. All we have to do is
 update a Route.
 
 ```bash
-$ python demo/python/03_retries.py
+$ python demo/scripts/03_retries.py
 httproute.gateway.networking.k8s.io/wineinfo-search created
 ```
 

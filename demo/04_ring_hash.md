@@ -23,7 +23,7 @@ Run it with `python demo/python/04_generator.py --duration 10`.  You should see
 something like this:
 
 ```bash
-$ python demo/python/04_generator.py --duration 10
+$ python demo/scripts/04_generator.py --duration 10
 Response Codes:
   200: 10
   500: 100
@@ -41,7 +41,7 @@ kubectl scale --replicas=4 deployment/wineinfo-recs
 So should everything be better? Lets find out.
 
 ```bash
-$ python demo/python/04_generator.py --duration 10
+$ python demo/scripts/04_generator.py --duration 10
 Response Codes:
   200: 41
   500: 69
@@ -76,12 +76,12 @@ which allows us to consistently send a shard of traffic to the same server, even
 as the service scales up and down. Let's try it.
 
 ```bash
-$ python demo/python/04_ring_hash.py
+$ python demo/scripts/04_ring_hash.py
 service/wineinfo-recs patched
 ```
 
 ```bash
-$ python demo/python/04_generator.py --duration 10
+$ python demo/scripts/04_generator.py --duration 10
 Response Codes:
   200: 110
 ```

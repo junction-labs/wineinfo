@@ -1,21 +1,44 @@
-import { settings } from '@/lib/server/config';
-import { Session } from 'next-auth';
+import type { Session } from 'next-auth'
 
 export interface Fetcher {
     fetch(url: string, config: RequestInit): Promise<Response>;
 }
 
+export interface HttpClientOptions {
+    additionalHeaders: Headers;
+    baggage: Record<string, string>;
+}
+
+export function emptyOptions(): HttpClientOptions {
+    return {
+        additionalHeaders: new Headers(),
+        baggage: {}
+    }
+}
+
+export function sessionOptions(incomingHeaders: Headers, session: Session | null): HttpClientOptions {
+    const requestId = incomingHeaders.get('x-request-id') || crypto.randomUUID()
+    return {
+        additionalHeaders: new Headers(),
+        baggage: {
+            'request-id': requestId,
+            'user-id': session?.user?.id || '',
+            'username': session?.user?.name || ''
+        }
+    }
+}
+
 export class HttpClient {
     private junction: any;
 
-    constructor(private baseUrl: string) {
+    constructor(private baseUrl: string, useJunction: boolean) {
         this.baseUrl = baseUrl.replace(/\/$/, '');
-        if (settings.useJunction) {
+        if (useJunction) {
             this.junction = require("@junction-labs/client");
         }
     }
 
-    private async myfetch(input: string | URL | globalThis.Request, init?: RequestInit): Promise<Response> {
+    private async fetch(input: string | URL | globalThis.Request, init?: RequestInit): Promise<Response> {
         if (this.junction) {
             return this.junction.fetch(input, init);
         } else {
@@ -24,16 +47,19 @@ export class HttpClient {
     }
 
     private async request<T>(
-        baggage: string[],
         method: 'GET' | 'POST',
         url: string,
-        data?: any): Promise<T> {
+        data?: any,
+        options: HttpClientOptions = emptyOptions()
+    ): Promise<T> {
         try {
-            const headers = new Headers()
-            headers.append('Content-Type', 'application/json');
-            baggage.forEach(item => {
-                headers.append('baggage', item)
-            })
+            const headers: Headers = new Headers(options.additionalHeaders);
+            if (method === 'POST' && !headers.has('Content-Type')) {
+                headers.set('Content-Type', 'application/json');
+            }
+            headers.set('baggage', Object.entries(options.baggage)
+                .map(([key, value]) => `${key}=${value}`)
+                .join(','))
             const request: RequestInit = { method, headers };
 
             if (method === 'GET' && data) {
@@ -50,7 +76,7 @@ export class HttpClient {
                 request.body = JSON.stringify(data);
             }
 
-            const response = await this.myfetch(`${this.baseUrl}${url}`, request);
+            const response = await this.fetch(`${this.baseUrl}/${url}`, request);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -60,11 +86,17 @@ export class HttpClient {
         }
     }
 
-    async get<T>(baggage: string[], url: string, data?: any): Promise<T> {
-        return this.request<T>(baggage, 'GET', url, data);
+    async get<T>(
+        path: string,
+        data?: any,
+        options: HttpClientOptions = emptyOptions()): Promise<T> {
+        return this.request<T>('GET', path, data, options);
     }
 
-    async post<T>(baggage: string[], url: string, data: any): Promise<T> {
-        return this.request<T>(baggage, 'POST', url, data);
+    async post<T>(
+        path: string,
+        data: any,
+        options: HttpClientOptions = emptyOptions()): Promise<T> {
+        return this.request<T>('POST', path, data, options);
     }
 }
