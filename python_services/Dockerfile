@@ -7,3 +7,7 @@ RUN pip install --upgrade uv
 RUN uv pip install --system -r requirements.txt
 COPY ./app .
 COPY ./data ./data
+# fetch the llm from huggingface
+COPY ./bin .
+RUN python fetch_recs_llm.py
+

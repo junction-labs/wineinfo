@@ -14,7 +14,7 @@ catalog_service = CatalogService(
     HttpClient(settings.catalog_service, settings.use_junction)
 )
 impl = RecsServiceImpl(ServiceSettings(), False, catalog_service)
-logger = logging.getLogger('uvicorn.error')
+logger = logging.getLogger("uvicorn.error")
 
 
 # the LLM may not be downloaded until we do this, so do it now
@@ -26,7 +26,5 @@ app.middleware("http")(create_baggage_middleware())
 
 
 @app.get(RECS_SERVICE["get_recommendations"]["path"])
-def get_recommendations(
-    params: RecsRequest = Depends()
-) -> List[int]:
+def get_recommendations(params: RecsRequest = Depends()) -> List[int]:
     return impl.get_recommendations(params)

@@ -36,9 +36,11 @@ class CatalogServiceImpl:
                 missing_ids.append(wine_id)
 
         if missing_ids:
-            raise HTTPException(status_code=404, detail=f"Wines not found: {missing_ids}")
+            raise HTTPException(
+                status_code=404, detail=f"Wines not found: {missing_ids}"
+            )
 
-        return wines        
+        return wines
 
     def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
         offset = (page - 1) * page_size
@@ -49,4 +51,4 @@ class CatalogServiceImpl:
             page=page,
             page_size=page_size,
             total_pages=(len(self.data) + page_size - 1) // page_size,
-        )        
+        )

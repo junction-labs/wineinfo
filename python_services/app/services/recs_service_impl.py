@@ -5,11 +5,16 @@ import chromadb
 from collections import deque
 from typing import Deque, Dict, List
 
+from fastapi import HTTPException
+
 from ..common.config import ServiceSettings
 from ..common.api import GetWineRequest, RecsRequest, Wine
 
+
 class RecsServiceImpl:
-    def __init__(self, settings: ServiceSettings, reset: bool = False, catalog_service=None):
+    def __init__(
+        self, settings: ServiceSettings, reset: bool = False, catalog_service=None
+    ):
         self.recs_demo_failure = settings.recs_demo_failure
         self.catalog_service = catalog_service
         path = os.path.join(settings.data_path, "recs_data")
@@ -19,13 +24,7 @@ class RecsServiceImpl:
         self.collection = self.chroma_client.get_or_create_collection(
             name="my_collection"
         )
-
-        # Initialize failure simulation components
-        self.query_history: Deque[Dict] = deque()
-        self.failure_until: float = 0
-        self.WINDOW_SECONDS = 2
-        self.QUERY_THRESHOLD = 5
-        self.FAILURE_DURATION = 5
+        self._init_failure_simulation()
 
     def open_index(self):
         self.batch_ids = []
@@ -45,25 +44,32 @@ class RecsServiceImpl:
         self.batch_ids = []
         self.batch_documents = []
 
+    def _init_failure_simulation(self):
+        self.query_history: Deque[Dict] = deque()
+        self.failure_until: float = 0
+        self.WINDOW_SECONDS = 2
+        self.QUERY_THRESHOLD = 5
+        self.FAILURE_DURATION = 5
+
     def _check_failure_condition(self, query: str) -> bool:
         current_time = time.time()
         if current_time < self.failure_until:
-            raise RuntimeError(
-                "Service temporarily unavailable due to high query volume"
+            raise HTTPException(
+                400, "Service temporarily unavailable due to high query volume"
             )
         while (
             self.query_history
             and current_time - self.query_history[0]["timestamp"] > self.WINDOW_SECONDS
         ):
             self.query_history.popleft()
-            
+
         self.query_history.append({"query": query, "timestamp": current_time})
         unique_queries = len(set(record["query"] for record in self.query_history))
 
         if unique_queries > self.QUERY_THRESHOLD:
             self.failure_until = current_time + self.FAILURE_DURATION
-            raise RuntimeError(
-                "Service temporarily unavailable due to high query volume"
+            raise HTTPException(
+                400, "Service temporarily unavailable due to high query volume"
             )
 
     def get_recommendations_unfiltered(self, params: RecsRequest) -> List[int]:

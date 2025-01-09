@@ -81,11 +81,12 @@ class SearchServiceImpl:
             return PaginatedList[int].model_validate(
                 {
                     "items": [
-                        int(hit["id"]) for hit in results[start : start + params.page_size]
+                        int(hit["id"])
+                        for hit in results[start : start + params.page_size]
                     ],
                     "total": len(results),
                     "page": params.page,
                     "page_size": params.page_size,
-                    "total_pages": (len(results) + params.page_size - 1)
+                    "total_pages": (len(results) + params.page_size - 1),
                 }
             )

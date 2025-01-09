@@ -6,7 +6,6 @@ from ..common.config import ServiceSettings
 from ..common.api import SQLRequest
 
 
-
 class PersistServiceImpl:
     def __init__(self, settings: ServiceSettings, reset: bool = False):
         self.db_path = os.path.join(settings.data_path, "persist_data.db")
@@ -32,4 +31,4 @@ class PersistServiceImpl:
                 cursor.execute(params.query, params.params)
                 ret = cursor.fetchall()
                 conn.commit()
-                return ret       
+                return ret
