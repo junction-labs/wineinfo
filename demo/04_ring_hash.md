@@ -10,20 +10,19 @@ That's not that many queries before the service falls over! Simulate the problem
 by running:
 
 ```bash
-kubectl apply -f deploy/04_ring_hash.yaml
+kubectl apply -f demo/deploy/04_ring_hash.yaml
 ```
 
 We could convince ourselves the problem exists by playing with multiple browser
 tabs, but it's easier to test by hitting the wineinfo API directly. This python
 program spins up ten threads, each hitting
-`http://localhost:8011/wines/recommendations?query=` with their query,
+`http://localhost:8010/api/wine/recs` with their query,
 generating a new request every second.
 
-Run it with `python junction/04_generator.py --duration 10`.  You should see
-something like this:
+Run it as following:
 
 ```bash
-$ python junction/04_generator.py --duration 10
+$ python demo/scripts/04_generator.py --duration 10
 Response Codes:
   200: 10
   500: 100
@@ -41,7 +40,7 @@ kubectl scale --replicas=4 deployment/wineinfo-recs
 So should everything be better? Lets find out.
 
 ```bash
-$ python junction/04_generator.py --duration 10
+$ python demo/scripts/04_generator.py --duration 10
 Response Codes:
   200: 41
   500: 69
@@ -54,7 +53,7 @@ the problem: even though we have more servers, every single server is still
 seeing the whole set of queries:
 
 ```bash
-$ kubectl logs deployment/wineinfo-recs --tail=1000 | grep GET | cut -c 38- | sort | uniq -c
+$ kubectl logs deployment/wineinfo-recs --tail=30 | grep GET | cut -c 38- | sort | uniq -c
 Found 3 pods, using pod/wineinfo-recs-7567f698cf-trmvq
    3 /recommendations/?query=australia&limit=10
    1 /recommendations/?query=france&limit=10
@@ -76,12 +75,12 @@ which allows us to consistently send a shard of traffic to the same server, even
 as the service scales up and down. Let's try it.
 
 ```bash
-$ python ./junction/04_ring_hash.py
+$ python demo/scripts/04_ring_hash.py
 service/wineinfo-recs patched
 ```
 
 ```bash
-$ python junction/04_generator.py --duration 10
+$ python demo/scripts/04_generator.py --duration 10
 Response Codes:
   200: 110
 ```
@@ -146,6 +145,24 @@ query parameter.
 
 That kind of consistency is precisely the problem we need to solve to keep our
 recommendations service alive and happy!
+
+## Inspecting in the CLI
+
+Unfortunately we don't have a get_backends today. Rather to resolve the backends, do a request:
+
+```bash
+kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=catalog) -- python
+```
+
+```python
+import junction.requests
+session = junction.requests.Session()
+session.get("http://wineinfo-recs.default.svc.cluster.local/recommendations/?query=greece&limit=10")
+session.junction.dump_backends()
+[{'id': {'type': 'kube', 'name': 'wineinfo-recs', 'namespace': 'default', 'port': 80}, 'lb': {'type': 'RingHash', 'min_ring_size': 1024, 'hash_params': [{'type': 'QueryParam', 'name': 'query'}]}}]
+```
+
+We see the ring hash algorithm in place on the backend.
 
 ## Cleaning up for the next step
 

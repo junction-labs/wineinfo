@@ -1,8 +1,6 @@
 # For developers of the demo
 
-## Generating Vector Data
-
-We live in a post-GPT era, of course our application requires a vector database.
+## Generating New Vector Data
 
 Generating the data is best done in your local environment, rather than in a
 container. Depending on your CPU or GPU, this may take a while.
@@ -13,17 +11,14 @@ In this directory, run
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade uv
-uv pip install -r backend/requirements.txt
-python3 backend/bin/build_data.py
+uv pip install -r python_services/requirements.txt
+python3 python_services/bin/build_data.py
 ```
 
-## Seeing what the backend app sees
+## Querying junction from a running container
 
-```bash
-$ kubectl get pods | grep backend
-wineinfo-backend-57778c57c7-7r7j4        1/1     Running   0          42m
-
-$ kubectl exec -ti wineinfo-backend-57778c57c7-vdrlw -- python
+```
+kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=catalog) -- python
 ```
 
 Then typically:
@@ -84,40 +79,30 @@ npm install
 npm run dev
 ```
 
-Backend:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-python3 backend/bin/build_data.py
-fastapi dev backend/app/backend_app.py --port 8000
-```
-
 Persist:
 
 ```bash
 source .venv/bin/activate
-fastapi dev backend/app/persist_app.py --port 8004
+fastapi dev python_services/app/persist_app.py --port 8004
 ```
 
 Recs:
 
 ```bash
 source .venv/bin/activate
-fastapi dev backend/app/recs_app.py --port 8003
+fastapi dev python_services/app/recs_app.py --port 8003
 ```
 
 Search:
 
 ```bash
 source .venv/bin/activate
-fastapi dev backend/app/search_app.py --port 8002
+fastapi dev python_services/app/search_app.py --port 8002
 ```
 
 Catalog:
 
 ```bash
 source .venv/bin/activate
-fastapi dev backend/app/catalog_app.py --port 8001
+fastapi dev python_services/app/catalog_app.py --port 8001
 ```

@@ -7,6 +7,16 @@ try out Junction.
 If you're not coming from `README.md` take a moment to head back there and get
 the demo services running.
 
+To play with Junction configuration, we'll need a working Python environment.
+Setting this up is the hardest part of the demo:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install --upgrade uv
+.venv/bin/uv pip install -r python_services/requirements.txt
+source .venv/bin/activate
+```
+
 ## What's In The Box
 
 The demo cluster you just set up contains two high-level things: a WineInfo
@@ -22,21 +32,23 @@ Those services are tied together with an API service that serves up a React
 frontend.
 
 ```text
-                   ┌─────────────┐
-                   │  Frontend   │
-                   └─────┬───────┘
-                   ┌─────┴───────┐
-                   │   Backend   ├──────────────┐
-                   └─────┬───────┘              │
-        ┌────────────────┼────────────────┐     │
- ┌──────┴──────┐   ┌─────┴───────┐   ┌────┴───┐ │
- │   Catalog   │   │   Search    │   │  Recs  │ │
- └──────┬──────┘   └─────┬───────┘   └────┬───┘ │
-        └────────────────┼────────────────┘     │
-                         │                      │
-                    ┌────┴──────┐               │
-                    │  Persist  ├───────────────┘
-                    └───────────┘
+                  ┌────────────┐
+                  │  Frontend  │
+                  └─────┬──────┘
+                  ┌─────┴──────┐
+                  │  Backend   ├────────────────┐
+                  │  (nextjs)  │                │
+                  └─────┬──────┘                │
+        ┌───────────────┼───────────────┐       │
+ ┌──────┴─────┐   ┌─────┴──────┐   ┌────┴─────┐ │
+ │  Catalog   │   │  Search    │   │   Recs   │ │
+ │  (Python)  │   │  (Python)  │   │ (Python) │ │
+ └──────┬─────┘   └────┬───────┘   └────┬─────┘ │
+        └──────────────┼────────────────┘       │
+                       │                        │
+                  ┌────┴───────┐                │
+                  │  Persist   ├────────────────┘
+                  └────────────┘
 ```
 
 To introduce Junction, we will walk through some everyday tasks you might

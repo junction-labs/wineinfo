@@ -1,4 +1,18 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wineinfo-config
+data:
+  DATA_PATH: /app/data/gen
+  JUNCTION_ADS_SERVER: grpc://ezbake.junction:8008
+  USE_JUNCTION: "true"
+  CATALOG_SERVICE: "http://wineinfo-catalog.default.svc.cluster.local"
+  SEARCH_SERVICE: "http://wineinfo-search.default.svc.cluster.local"
+  RECS_SERVICE: "http://wineinfo-recs.default.svc.cluster.local"
+  PERSIST_SERVICE: "http://wineinfo-persist.default.svc.cluster.local"
+  NEXTAUTH_URL: "http://localhost:8010"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,13 +32,13 @@ spec:
         service: frontend
     spec:
       containers:
-      - name: wineinfo-frontend
-        image: wineinfo-frontend:latest
-        imagePullPolicy: IfNotPresent
-        env:
-          - name: VITE_BACKEND
-            value: "http://localhost:8011"
-        command: ["npm", "run", "dev", "--", "--host"]
+        - name: wineinfo-frontend
+          image: wineinfo-frontend:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+          command: ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
 ---
 apiVersion: v1
 kind: Service
@@ -39,60 +53,6 @@ spec:
     - nodePort: 30010
       port: 3000
       targetPort: 3000
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: wineinfo-backend-config
-data:
-  DATA_PATH: /app/data/gen
-  JUNCTION_ADS_SERVER: grpc://ezbake.junction:8008
-  USE_JUNCTION: "true"
-  CATALOG_SERVICE: "http://wineinfo-catalog.default.svc.cluster.local"
-  SEARCH_SERVICE: "http://wineinfo-search.default.svc.cluster.local"
-  RECS_SERVICE: "http://wineinfo-recs.default.svc.cluster.local"
-  PERSIST_SERVICE: "http://wineinfo-persist.default.svc.cluster.local"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wineinfo-backend
-  labels:
-    app: wineinfo
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: wineinfo
-      service: backend
-  template:
-    metadata:
-      labels:
-        app: wineinfo
-        service: backend
-    spec:
-      containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/backend_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-backend-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: wineinfo-backend
-spec:
-  type: NodePort
-  selector:
-    app: wineinfo
-    service: backend
-  ports:
-    - nodePort: 30011
-      port: 8000
-      targetPort: 8000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -113,13 +73,22 @@ spec:
         service: catalog
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-backend-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/catalog_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -153,13 +122,22 @@ spec:
         service: persist
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/persist_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-backend-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/persist_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -193,13 +171,22 @@ spec:
         service: recs
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/recs_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-backend-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/recs_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -233,13 +220,22 @@ spec:
         service: search
     spec:
       containers:
-      - name: main
-        image: wineinfo-python:latest
-        imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/search_app.py", "--host", "0.0.0.0", "--port", "8000"]
-        envFrom:
-        - configMapRef:
-            name: wineinfo-backend-config
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/search_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "8000",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
 ---
 apiVersion: v1
 kind: Service
@@ -253,4 +249,3 @@ spec:
   ports:
     - port: 80
       targetPort: 8000
-
