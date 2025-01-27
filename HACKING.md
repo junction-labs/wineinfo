@@ -31,7 +31,7 @@ client = junction.default_client()
 Then some options:
 
 ```python
-client.resolve_http("GET", "http://wineinfo-search.default.svc.cluster.local/search/?foo=bar", {})
+client.resolve_http(http://wineinfo-search.default.svc.cluster.local/search/?foo=bar")
 client.dump_routes()
 client.dump_backends()
 ```

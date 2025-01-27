@@ -209,9 +209,7 @@ will get routed to.
 ```python
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(catalog) + "/",
-    headers={},
 )
 assert rule_idx == len(route["rules"]) - 1
 assert backend == { **catalog, "port": 80 }
@@ -228,7 +226,6 @@ This double-checks that:
 ```python
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(catalog) + "/",
     headers={"baggage": "username=admin"},
 )

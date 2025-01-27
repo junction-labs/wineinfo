@@ -94,9 +94,7 @@ lets show that the path matching works, even when we specify a query string:
 ```python
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(search) + RemoteSearchService.SEARCH + "?term=foo",
-    headers={},
 )
 rule = matched["rules"][rule_idx]
 assert rule["timeouts"]["backend_request"] == 0.1
@@ -108,9 +106,7 @@ Now let's show the fallback route is not getting retries or timeouts set:
 ```python
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url=search_url + "/foo/",
-    headers={},
 )
 rule = matched["rules"][rule_idx]
 assert not "timeouts" in rule

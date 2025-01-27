@@ -41,9 +41,7 @@ route: config.Route = {
 
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(search) + SEARCH_SERVICE["search"]["path"] + "?term=foo",
-    headers={},
 )
 rule = matched["rules"][rule_idx]
 assert rule["timeouts"]["backend_request"] == 0.1
@@ -52,9 +50,7 @@ assert rule["retry"]["attempts"] == 5
 
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(search) + "/foo/",
-    headers={},
 )
 rule = matched["rules"][rule_idx]
 assert not "timeouts" in rule
