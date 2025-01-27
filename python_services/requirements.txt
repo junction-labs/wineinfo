@@ -3,5 +3,5 @@ pydantic-settings
 uvicorn
 whoosh
 chromadb
-junction-python>=0.2
+junction-python>=0.3
 yaspin

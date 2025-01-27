@@ -36,16 +36,13 @@ route: config.Route = {
 
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(catalog) + "/",
-    headers={},
 )
 assert rule_idx == len(route["rules"]) - 1
 assert backend == {**catalog, "port": 80}
 
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    method="GET",
     url="http://" + service_hostname(catalog) + "/",
     headers={"baggage": "username=admin"},
 )
