@@ -19,7 +19,7 @@ source .venv/bin/activate
 
 ## What's In The Box
 
-The demo cluster you just set up contains two high-level things: a WineInfo
+The demo cluster you just set up contains two high-level applications: a WineInfo
 website built with a handful of microservices and a Junction control plane
 that's distributing config to all of the clients in the cluster.
 

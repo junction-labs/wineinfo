@@ -100,7 +100,7 @@ is_admin = config.RouteMatch(headers=[{
 
 route: config.Route = {
     "id": "wineinfo-catalog",
-    "hostnames": [service_hostname(catalog)],
+    "hostnames": [service_fqdn(catalog)],
     "rules": [
         {
             "matches": [is_admin],
@@ -121,7 +121,7 @@ is to match outgoing HTTP requests and then decide which Backend they should hit
 The first part of this Route describes which hostnames to match.
 
 ```python
-    "hostnames": [ service_hostname(catalog) ],
+    "hostnames": [ service_fqdn(catalog) ],
 ```
 
 Hostnames are special, so they're matched first - they're how you communicate
@@ -209,7 +209,7 @@ will get routed to.
 ```python
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://" + service_hostname(catalog) + "/",
+    url="http://" + service_fqdn(catalog) + "/",
 )
 assert rule_idx == len(route["rules"]) - 1
 assert backend == { **catalog, "port": 80 }
@@ -226,7 +226,7 @@ This double-checks that:
 ```python
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://" + service_hostname(catalog) + "/",
+    url="http://" + service_fqdn(catalog) + "/",
     headers={"baggage": "username=admin"},
 )
 assert rule_idx == 0

@@ -1,4 +1,3 @@
-import logging
 from typing import List
 from fastapi import Depends, FastAPI
 from .common.http_client import HttpClient
@@ -14,13 +13,8 @@ catalog_service = CatalogService(
     HttpClient(settings.catalog_service, settings.use_junction)
 )
 impl = RecsServiceImpl(ServiceSettings(), False, catalog_service)
-logger = logging.getLogger("uvicorn.error")
-
-
 # the LLM may not be downloaded until we do this, so do it now
-logger.info("Downloading LLM")
 impl.get_recommendations_unfiltered(RecsRequest(query="dummy", limit=1))
-logger.info("Call done")
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
 

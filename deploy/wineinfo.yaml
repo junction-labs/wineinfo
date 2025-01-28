@@ -7,10 +7,10 @@ data:
   DATA_PATH: /app/data/gen
   JUNCTION_ADS_SERVER: grpc://ezbake.junction:8008
   USE_JUNCTION: "true"
-  CATALOG_SERVICE: "http://wineinfo-catalog.default.svc.cluster.local"
-  SEARCH_SERVICE: "http://wineinfo-search.default.svc.cluster.local"
-  RECS_SERVICE: "http://wineinfo-recs.default.svc.cluster.local"
-  PERSIST_SERVICE: "http://wineinfo-persist.default.svc.cluster.local"
+  CATALOG_SERVICE: "http://wineinfo-catalog"
+  SEARCH_SERVICE: "http://wineinfo-search"
+  RECS_SERVICE: "http://wineinfo-recs"
+  PERSIST_SERVICE: "http://wineinfo-persist"
   NEXTAUTH_URL: "http://localhost:8010"
 ---
 apiVersion: apps/v1

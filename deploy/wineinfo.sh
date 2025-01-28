@@ -36,7 +36,7 @@ k3d_cluster() {
 
 run_ezbake() {
     kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml
-    kubectl apply -f ./deploy/ezbake.yaml
+    kubectl apply -f https://github.com/junction-labs/ezbake/releases/latest/download/install-for-cluster.yml
 }
 
 run_wineinfo() {

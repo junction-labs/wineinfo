@@ -1,7 +1,7 @@
 import junction
 import junction.config as config
 
-from utils import kubectl_apply, service_hostname
+from utils import kubectl_apply, service_fqdn
 
 catalog: config.Service = {
     "type": "kube",
@@ -22,7 +22,7 @@ is_admin = config.RouteMatch(headers=[{
 
 route: config.Route = {
     "id": "wineinfo-catalog",
-    "hostnames": [service_hostname(catalog)],
+    "hostnames": [service_fqdn(catalog)],
     "rules": [
         {
             "matches": [is_admin],
@@ -36,14 +36,14 @@ route: config.Route = {
 
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://" + service_hostname(catalog) + "/",
+    url="http://wineinfo-catalog/",
 )
 assert rule_idx == len(route["rules"]) - 1
 assert backend == {**catalog, "port": 80}
 
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://" + service_hostname(catalog) + "/",
+    url="http://wineinfo-catalog/",
     headers={"baggage": "username=admin"},
 )
 assert rule_idx == 0

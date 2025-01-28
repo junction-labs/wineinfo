@@ -25,7 +25,7 @@ class CatalogServiceImpl:
         self.data.append(wine)
         return wine
 
-    def get_wine(self, ids: List[int] | None) -> List[Wine]:
+    def get_wine(self, ids: List[int]) -> List[Wine]:
         wines = []
         missing_ids = []
 

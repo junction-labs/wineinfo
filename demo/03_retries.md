@@ -49,8 +49,8 @@ search: config.Service = {
 }
 
 route: config.Route = {
-    "id": service_hostname(search).replace(".", "-"),
-    "hostnames": [service_hostname(search)],
+    "id": service_fqdn(search).replace(".", "-"),
+    "hostnames": [service_fqdn(search)],
     "rules": [
         {
             "matches": [{"path": {"value": RemoteSearchService.SEARCH}}],
@@ -94,7 +94,7 @@ lets show that the path matching works, even when we specify a query string:
 ```python
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://" + service_hostname(search) + RemoteSearchService.SEARCH + "?term=foo",
+    url="http://" + service_fqdn(search) + RemoteSearchService.SEARCH + "?term=foo",
 )
 rule = matched["rules"][rule_idx]
 assert rule["timeouts"]["backend_request"] == 0.1
