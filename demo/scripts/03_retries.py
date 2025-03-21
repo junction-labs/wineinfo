@@ -1,6 +1,6 @@
 import junction
 import junction.config as config
-from utils import kubectl_apply, service_fqdn
+from utils import kubectl_apply, service_fqdn, kube_search_config
 
 # just a little sys.path hack to import our Backend code without making this a
 # module. in the real world, we hope you don't have to do this!
@@ -42,6 +42,7 @@ route: config.Route = {
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
     url="http://wineinfo-search" + SEARCH_SERVICE["search"]["path"] + "?term=foo",
+    search_config=kube_search_config(),
 )
 rule = matched["rules"][rule_idx]
 assert rule["timeouts"]["backend_request"] == 0.1
@@ -51,9 +52,10 @@ assert rule["retry"]["attempts"] == 5
 (matched, rule_idx, backend) = junction.check_route(
     routes=[route],
     url="http://wineinfo-search" + "/foo/",
+    search_config=kube_search_config(),
 )
 rule = matched["rules"][rule_idx]
-assert not "timeouts" in rule
-assert not "retry" in rule
+assert "timeouts" not in rule
+assert "retry" not in rule
 
 kubectl_apply(junction.dump_kube_route(route=route, namespace="default"))

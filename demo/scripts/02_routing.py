@@ -1,7 +1,7 @@
 import junction
 import junction.config as config
 
-from utils import kubectl_apply, service_fqdn
+from utils import kubectl_apply, service_fqdn, kube_search_config
 
 catalog: config.Service = {
     "type": "kube",
@@ -36,15 +36,19 @@ route: config.Route = {
 
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://wineinfo-catalog/",
+    url="http://wineinfo-catalog.default.svc.cluster.local",
 )
 assert rule_idx == len(route["rules"]) - 1
 assert backend == {**catalog, "port": 80}
 
 (route, rule_idx, backend) = junction.check_route(
     routes=[route],
-    url="http://wineinfo-catalog/",
+    url="http://wineinfo-catalog",
     headers={"baggage": "username=admin"},
+    # becasuse we know what resolv.conf should look like inside our cluster, we
+    # can tell check_route to use the same search config, and really test how
+    # resolution will behave in our environment.
+    search_config=kube_search_config(),
 )
 assert rule_idx == 0
 assert backend == {**catalog_next, "port": 80}

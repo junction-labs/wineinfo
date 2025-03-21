@@ -3,6 +3,21 @@ import subprocess
 import junction
 
 
+def kube_search_config(namespace="default"):
+    """
+    Returns a Junction search config that mirrors the /etc/resolv.conf
+    that Kubernetes puts in all Pods by default.
+    """
+    return {
+        "search": [
+            f"{namespace}.svc.cluster.local",
+            "svc.cluster.local",
+            "cluster.local",
+        ],
+        "ndots": 5,
+    }
+
+
 def service_fqdn(service: junction.config.Service) -> str:
     """
     Returns the fqdn for a junction Service, to be used in
