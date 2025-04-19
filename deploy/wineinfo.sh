@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # set up a local k3d cluster with the wineinfo services running in the
 # default namespace and ezbake running in the junction namespace.
