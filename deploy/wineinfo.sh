@@ -30,7 +30,7 @@ k3d_cluster() {
     if k3d cluster list | grep -q "${cluster_name}"; then
         echo "cluster ${cluster_name} exists"
     else
-        k3d cluster create "$cluster_name" -p "8010-8011:30010-30011@loadbalancer"
+        k3d cluster create "$cluster_name" -p "8010-8011:30010-30011@loadbalancer" --image rancher/k3s:latest
     fi
 }
 
