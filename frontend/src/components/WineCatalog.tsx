@@ -1,12 +1,13 @@
 'use client';
 import React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCellarWines, addToCellar, removeFromCellar, searchWines, recommendWines } from '@/lib/actions/wineActions';
 import { type Wine } from '@/lib/api_types';
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useSession } from 'next-auth/react';
 
 
 type TabType = 'catalog' | 'cellar' | 'recommendations';
@@ -104,6 +105,150 @@ function WineCard({ wine, inCellar, onCellarToggle, isLoggedIn }: WineCardProps)
     );
 }
 
+// Load Testing Component
+function LoadTestingSection() {
+    const { data: session } = useSession();
+    const [isRunning, setIsRunning] = useState(false);
+    const [duration, setDuration] = useState(10);
+    const [stats, setStats] = useState<{[key: number]: number}>({});
+    const [startTime, setStartTime] = useState<number | null>(null);
+    const intervalRefs = useRef<NodeJS.Timeout[]>([]);
+
+    // Clear intervals on unmount
+    useEffect(() => {
+        return stopLoadTest;
+    }, []);
+    
+    // Only show for admin user
+    if (!session?.user?.name || session.user.name !== 'admin') {
+        return null;
+    }
+    
+    const queries = ['red', 'white', 'rose', 'pinot noir', 'france', 'italy', 'germany', 'greece', 'australia', 'portugal'];
+    const REQUEST_INTERVAL = 1000;
+
+    const startLoadTest = () => {
+        if (isRunning) return;
+        
+        setIsRunning(true);
+        setStats({});
+        setStartTime(Date.now());
+        
+        // Clear any existing intervals
+        intervalRefs.current.forEach(clearInterval);
+        intervalRefs.current = [];
+        
+        // Start a request loop for each query
+        queries.forEach((query) => {
+            const makeRequest = async () => {
+                try {
+                    const response = await fetch(`/api/wine/recs?query=${encodeURIComponent(query)}`);
+                    setStats(prev => ({
+                        ...prev,
+                        [response.status]: (prev[response.status] || 0) + 1
+                    }));
+                } catch (error) {
+                    setStats(prev => ({
+                        ...prev,
+                        [0]: (prev[0] || 0) + 1 // 0 for network errors
+                    }));
+                }
+            };
+            
+            // Make initial request
+            makeRequest();
+            
+            // Set up interval for repeated requests (every 1 second)
+            const interval = setInterval(makeRequest, REQUEST_INTERVAL);
+            intervalRefs.current.push(interval);
+        });
+        
+        // Stop after duration
+        setTimeout(() => {
+            stopLoadTest();
+        }, duration * REQUEST_INTERVAL);
+    };
+    
+    const stopLoadTest = () => {
+        setIsRunning(false);
+        intervalRefs.current.forEach(clearInterval);
+        intervalRefs.current = [];
+    };
+    
+    const resetStats = () => {
+        setStats({});
+        setStartTime(null);
+    };
+    
+    return (
+        <Card className="mb-4">
+            <CardContent className="p-4">
+                <CardTitle className="text-lg mb-4">Load Testing</CardTitle>
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="duration" className="text-sm font-medium">Duration (seconds):</label>
+                        <Input
+                            id="duration"
+                            type="number"
+                            value={duration}
+                            onChange={(e) => setDuration(parseInt(e.target.value) || 10)}
+                            className="w-20"
+                            min="1"
+                            max="300"
+                            disabled={isRunning}
+                        />
+                    </div>
+                    <Button
+                        onClick={startLoadTest}
+                        disabled={isRunning}
+                        className="bg-yellow-600 hover:bg-yellow-700"
+                    >
+                        {isRunning ? 'Running...' : 'Start Load Test'}
+                    </Button>
+                    <Button
+                        onClick={stopLoadTest}
+                        disabled={!isRunning}
+                        variant="outline"
+                    >
+                        Stop
+                    </Button>
+                    <Button
+                        onClick={resetStats}
+                        variant="outline"
+                        disabled={isRunning}
+                    >
+                        Reset
+                    </Button>
+                </div>
+                
+                <div className="text-sm text-gray-600 mb-2">
+                    Queries: {queries.join(', ')}
+                </div>
+                
+                {startTime && (
+                    <div className="text-sm text-gray-600 mb-2">
+                        Running for: {Math.floor((Date.now() - startTime) / REQUEST_INTERVAL)}s
+                    </div>
+                )}
+                
+                {Object.keys(stats).length > 0 && (
+                    <div className="mt-4">
+                        <h4 className="font-medium mb-2">Response Statistics:</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                            {Object.entries(stats).map(([code, count]) => (
+                                <div key={code} className="flex justify-between">
+                                    <span>{code === '0' ? 'Network Error' : `HTTP ${code}`}:</span>
+                                    <span>{count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 // Main Page Component
 export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
     const [activeTab, setActiveTab] = useState<TabType>('catalog');
@@ -150,7 +295,7 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
                 totalPages = data.total_pages;
                 total = data.total;
             } else if (activeTab === 'recommendations') {
-                wineData = await recommendWines(searchTerm.trim());
+                wineData = await recommendWines(searchTerm);
                 totalPages = 1;
                 total = wineData.length;
             } else {
@@ -244,6 +389,10 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
                         placeholder={activeTab === 'catalog' ? "Search wines..." : "Describe what you would like..."}
                         isTextArea={activeTab === 'recommendations'}
                     />
+                )}
+
+                {activeTab === 'recommendations' && (
+                    <LoadTestingSection />
                 )}
 
                 {wines.length > 0 && totalPages > 1 && (

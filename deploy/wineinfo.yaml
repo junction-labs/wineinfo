@@ -12,6 +12,7 @@ data:
   RECS_SERVICE: "http://wineinfo-recs"
   PERSIST_SERVICE: "http://wineinfo-persist"
   NEXTAUTH_URL: "http://localhost:30010"
+  COLUMNS: "9999" # Helps FastAPI logs not wrap lines
 ---
 apiVersion: apps/v1
 kind: Deployment
