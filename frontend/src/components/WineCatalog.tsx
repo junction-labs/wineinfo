@@ -50,7 +50,7 @@ function SearchInput({
 
     return (
         <div className="flex gap-2 mb-4">
-            <InputComponent
+            <Input
                 placeholder={placeholder}
                 value={value}
                 onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value)}
@@ -150,7 +150,7 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
                 totalPages = data.total_pages;
                 total = data.total;
             } else if (activeTab === 'recommendations') {
-                wineData = await recommendWines(searchTerm);
+                wineData = await recommendWines(searchTerm.trim());
                 totalPages = 1;
                 total = wineData.length;
             } else {
