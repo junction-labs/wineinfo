@@ -259,12 +259,12 @@ Features:
 
 Steps:
 
-11. Simulate Recommendations service load failure `kubectl apply -f demo/deploy/04_ring_hash.yaml` 
+11. Simulate Recommendations service load failure: `kubectl apply -f demo/deploy/04_ring_hash.yaml` 
     > For demo purposes this just sets the `RECS_DEMO_FAILURE` env var to `true` for the wineinfo-recs deployment
 12. Show the failures by making repeated request to the recommendation server with distinct queries (5 reqs in two seconds or more)
     1. Also show failures with the Load Testing widget in recommendations tab by logging in as admin user
-14. Upscale recommendation service `kubectl scale --replicas=4 deployment/wineinfo-recs`
-15. Show problem still exists using Load Testing functionality in recommendations UI in Wineinfo
+14. Upscale recommendation service: `kubectl scale --replicas=4 deployment/wineinfo-recs`
+15. Show problem has gotten better, but still exists using Load Testing functionality in recommendations UI in Wineinfo
 16. Add a load balancing policy to the wineinfo-recs service via the Junction UI
     <details>
       <summary>Service JSON</summary>
