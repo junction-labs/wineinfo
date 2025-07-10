@@ -1,11 +1,5 @@
 # WineInfo Demo Script
 
-This script assumes a you are running the demo against a Junction Control Plane (JCP) running natively on your host machine and that WineInfo is running in an [orbstack k8s cluster](https://docs.orbstack.dev/kubernetes/) on the same host machine.
-
-Before starting please make the following modifications in [wineinfo.yaml](../deploy/wineinfo.yaml):
-1. Change the `JUNCTION_ADS_SERVER` variable to `grpc://host.docker.internal:8008`.
-2. And change `NEXTAUTH_URL` to `"http://localhost:30010"`.
-
 ## Routing/traffic splitting
 
 Features:
