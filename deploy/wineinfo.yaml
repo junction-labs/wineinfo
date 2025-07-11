@@ -12,6 +12,7 @@ data:
   RECS_SERVICE: "http://wineinfo-recs"
   PERSIST_SERVICE: "http://wineinfo-persist"
   NEXTAUTH_URL: "http://localhost:8010"
+  COLUMNS: "9999" # Helps FastAPI logs not wrap lines
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -52,7 +53,6 @@ spec:
   ports:
     - nodePort: 30010
       port: 3000
-      targetPort: 3000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -84,7 +84,7 @@ spec:
               "--host",
               "0.0.0.0",
               "--port",
-              "8000",
+              "80",
             ]
           envFrom:
             - configMapRef:
@@ -101,7 +101,6 @@ spec:
     service: catalog
   ports:
     - port: 80
-      targetPort: 8000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -133,7 +132,7 @@ spec:
               "--host",
               "0.0.0.0",
               "--port",
-              "8000",
+              "80",
             ]
           envFrom:
             - configMapRef:
@@ -150,7 +149,6 @@ spec:
     service: persist
   ports:
     - port: 80
-      targetPort: 8000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -182,7 +180,7 @@ spec:
               "--host",
               "0.0.0.0",
               "--port",
-              "8000",
+              "80",
             ]
           envFrom:
             - configMapRef:
@@ -199,7 +197,6 @@ spec:
     service: recs
   ports:
     - port: 80
-      targetPort: 8000
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -231,7 +228,7 @@ spec:
               "--host",
               "0.0.0.0",
               "--port",
-              "8000",
+              "80",
             ]
           envFrom:
             - configMapRef:
@@ -248,4 +245,3 @@ spec:
     service: search
   ports:
     - port: 80
-      targetPort: 8000
