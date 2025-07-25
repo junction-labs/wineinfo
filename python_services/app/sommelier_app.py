@@ -1,12 +1,10 @@
-from typing import List
 from fastapi import FastAPI
-from pydantic import BaseModel
 from .common.http_client import HttpClient
 from .common.config import ServiceSettings
 from .common.api_stubs import CatalogService, PersistService, RecsService, SearchService
 from .common.baggage import create_baggage_middleware
 from .services.sommelier_service_impl import SommelierServiceImpl
-from .common.api import Wine
+from .common.api import SommelierChatRequest, SommelierChatResponse, Wine
 
 
 

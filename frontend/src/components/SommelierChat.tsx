@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, Wine } from '@/lib/api_types';
-import { chatWithSommelier, getCellarWineIds } from '@/lib/actions/wineActions';
+import { chatWithSommelier, getCellarWineIds, addToCellar, removeFromCellar } from '@/lib/actions/wineActions';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,8 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [messageCount, setMessageCount] = useState(1); // Track message count for scroll behavior
+    const [cellarWineIds, setCellarWineIds] = useState<Set<number>>(new Set());
+    const [cellarLoadingStates, setCellarLoadingStates] = useState<Set<number>>(new Set());
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,6 +45,17 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
             scrollToBottom();
         }
     }, [messageCount]);
+
+    // Load cellar wine IDs on component mount if user is logged in
+    useEffect(() => {
+        if (isLoggedIn) {
+            getCellarWineIds().then(ids => {
+                setCellarWineIds(new Set(ids));
+            }).catch(error => {
+                console.error('Error loading cellar wine IDs:', error);
+            });
+        }
+    }, [isLoggedIn]);
 
     const handleSendMessage = async () => {
         if (!inputMessage.trim() || isLoading) return;
@@ -72,7 +85,7 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
         setMessageCount(prev => prev + 1);
 
         try {
-            const cellarWineIds = isLoggedIn ? await getCellarWineIds() : [];
+            const cellarWineIdsArray = isLoggedIn ? Array.from(cellarWineIds) : [];
 
             const conversationHistory: ChatMessage[] = messages.map(msg => ({
                 role: msg.role,
@@ -82,7 +95,7 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
             const response = await chatWithSommelier({
                 message: inputMessage,
                 conversation_history: conversationHistory,
-                cellar_wine_ids: cellarWineIds
+                cellar_wine_ids: cellarWineIdsArray
             });
 
             const recommendedWines = response.recommended_wines;
@@ -108,6 +121,34 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
             setMessageCount(prev => prev + 1);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleCellarAction = async (wineId: number, action: 'add' | 'remove') => {
+        if (!isLoggedIn) return;
+
+        setCellarLoadingStates(prev => new Set(prev).add(wineId));
+
+        try {
+            if (action === 'add') {
+                await addToCellar(wineId);
+                setCellarWineIds(prev => new Set(prev).add(wineId));
+            } else {
+                await removeFromCellar(wineId);
+                setCellarWineIds(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(wineId);
+                    return newSet;
+                });
+            }
+        } catch (error) {
+            console.error(`Error ${action}ing wine from cellar:`, error);
+        } finally {
+            setCellarLoadingStates(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(wineId);
+                return newSet;
+            });
         }
     };
 
@@ -142,19 +183,41 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                             <div className="mt-3 pt-3 border-t border-border">
                                                 <div className="text-sm font-semibold mb-2">Recommended Wines:</div>
                                                 <div className="space-y-2">
-                                                    {message.recommendedWines.map((wine) => (
-                                                        <Card key={wine.id} className="p-2">
-                                                            <div className="text-sm">
-                                                                <div className="font-medium">{wine.title}</div>
-                                                                <div className="text-muted-foreground">
-                                                                    {wine.winery} • {wine.variety} • ${wine.price}
+                                                    {message.recommendedWines.map((wine) => {
+                                                        const isInCellar = cellarWineIds.has(wine.id);
+                                                        const isLoading = cellarLoadingStates.has(wine.id);
+
+                                                        return (
+                                                            <Card key={wine.id} className="p-2">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div className="text-sm flex-1">
+                                                                        <div className="font-medium">{wine.title}</div>
+                                                                        <div className="text-muted-foreground">
+                                                                            {wine.winery} • {wine.variety} • ${wine.price}
+                                                                        </div>
+                                                                        <div className="text-xs text-muted-foreground mt-1">
+                                                                            {wine.country}, {wine.province} • {wine.points} pts
+                                                                        </div>
+                                                                    </div>
+                                                                    {isLoggedIn && (
+                                                                        <Button
+                                                                            variant={isInCellar ? "destructive" : "default"}
+                                                                            size="sm"
+                                                                            onClick={() => handleCellarAction(wine.id, isInCellar ? 'remove' : 'add')}
+                                                                            disabled={isLoading}
+                                                                            className="ml-2 flex-shrink-0"
+                                                                        >
+                                                                            {isLoading ? (
+                                                                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                                                            ) : (
+                                                                                isInCellar ? "Remove" : "Add to Cellar"
+                                                                            )}
+                                                                        </Button>
+                                                                    )}
                                                                 </div>
-                                                                <div className="text-xs text-muted-foreground mt-1">
-                                                                    {wine.country}, {wine.province} • {wine.points} pts
-                                                                </div>
-                                                            </div>
-                                                        </Card>
-                                                    ))}
+                                                            </Card>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
