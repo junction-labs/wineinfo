@@ -3,6 +3,7 @@ interface ServiceSettings {
     searchService: string;
     recsService: string;
     persistService: string;
+    sommelierService: string;
     useJunction: boolean;
 }
 
@@ -11,7 +12,6 @@ export const settings: ServiceSettings = {
     searchService: process.env.SEARCH_SERVICE || "http://localhost:8002",
     recsService: process.env.RECS_SERVICE || "http://localhost:8003",
     persistService: process.env.PERSIST_SERVICE || "http://localhost:8004",
+    sommelierService: process.env.SOMMELIER_SERVICE || "http://localhost:8005",
     useJunction: process.env.USE_JUNCTION === "true"
 };
-
-

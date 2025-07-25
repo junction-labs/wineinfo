@@ -1,15 +1,16 @@
 'use client';
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { getCellarWines, addToCellar, removeFromCellar, searchWines, recommendWines } from '@/lib/actions/wineActions';
+import { getCellarWines, addToCellar, removeFromCellar, searchWines } from '@/lib/actions/wineActions';
 import { type Wine } from '@/lib/api_types';
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import SommelierChat from './SommelierChat';
 
 
-type TabType = 'catalog' | 'cellar' | 'recommendations';
+type TabType = 'catalog' | 'cellar' | 'chat';
 
 type NotificationType = 'success' | 'error';
 
@@ -124,14 +125,6 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
     };
 
     const fetchData = async (page: number = 1) => {
-        if (activeTab === 'recommendations' && !searchTerm.trim()) {
-            setWines([]);
-            setCurrentPage(1);
-            setTotalPages(1);
-            setTotal(0);
-            return;
-        }
-
         setLoading(true);
         try {
             let wineData: Wine[], totalPages: number, total: number;
@@ -140,6 +133,7 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
             if (isLoggedIn) {
                 cellarWines = await getCellarWines();
             }
+
             if (activeTab === 'catalog') {
                 const data = await searchWines({
                     query: searchTerm,
@@ -149,11 +143,8 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
                 wineData = data.items;
                 totalPages = data.total_pages;
                 total = data.total;
-            } else if (activeTab === 'recommendations') {
-                wineData = await recommendWines(searchTerm);
-                totalPages = 1;
-                total = wineData.length;
             } else {
+                // cellar tab
                 wineData = cellarWines;
                 totalPages = 1;
                 total = cellarWines.length;
@@ -198,16 +189,18 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
     };
 
     useEffect(() => {
-        setSearchTerm('');
-        setWines([]);
-        setTotalPages(0);
-        fetchData(1);
+        if (activeTab !== 'chat') {
+            setSearchTerm('');
+            setWines([]);
+            setTotalPages(0);
+            fetchData(1);
+        }
     }, [activeTab, isLoggedIn]);
 
     const tabs = [
         { id: 'catalog' as TabType, name: 'Wine Catalog' },
         { id: 'cellar' as TabType, name: 'My Cellar', hidden: !isLoggedIn },
-        { id: 'recommendations' as TabType, name: 'Recommendations' }
+        { id: 'chat' as TabType, name: 'Sommelier Chat' }
     ];
 
     return (
@@ -228,69 +221,78 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
             </div>
 
             {notification && (
-                <div className={`mb-4 p-4 rounded-lg ${notification.type === 'error' ? 'bg-destructive/10' : 'bg-primary/10'
-                    }`}>
+                <div className={`mb-4 p-4 rounded-lg ${notification.type === 'error' ? 'bg-destructive/10' : 'bg-primary/10'}`}>
                     {notification.message}
                 </div>
             )}
 
-            <div className="p-4">
-                {(activeTab === 'catalog' || activeTab === 'recommendations') && (
-                    <SearchInput
-                        value={searchTerm}
-                        onChange={setSearchTerm}
-                        onSearch={() => fetchData(1)}
-                        loading={loading}
-                        placeholder={activeTab === 'catalog' ? "Search wines..." : "Describe what you would like..."}
-                        isTextArea={activeTab === 'recommendations'}
-                    />
+            <div className="mt-4">
+                {/* Chat tab content */}
+                {activeTab === 'chat' && (
+                    <SommelierChat isLoggedIn={isLoggedIn} />
                 )}
 
-                {wines.length > 0 && totalPages > 1 && (
-                    <div className="text-sm text-muted-foreground mb-4">
-                        Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} of {total} results
-                    </div>
-                )}
+                {/* Other tab content */}
+                {activeTab !== 'chat' && (
+                    <>
+                        {activeTab === 'catalog' && (
+                            <SearchInput
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                onSearch={() => fetchData(1)}
+                                loading={loading}
+                                placeholder="Search wines..."
+                                isTextArea={false}
+                            />
+                        )}
 
-                <div className="grid gap-4">
-                    {wines.map((wine) => (
-                        <WineCard
-                            key={wine.id}
-                            wine={wine}
-                            inCellar={cellarWines.has(wine.id)}
-                            onCellarToggle={handleCellarToggle}
-                            isLoggedIn={isLoggedIn}
-                        />
-                    ))}
-                </div>
+                        {wines.length > 0 && totalPages > 1 && (
+                            <div className="text-sm text-muted-foreground mb-4">
+                                Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} of {total} results
+                            </div>
+                        )}
 
-                {wines.length > 0 && totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-4">
-                        {[
-                            { label: '«', page: 1 },
-                            { label: '‹', page: currentPage - 1 },
-                            ...Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                let page: number;
-                                if (totalPages <= 5) page = i + 1;
-                                else if (currentPage <= 3) page = i + 1;
-                                else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
-                                else page = currentPage - 2 + i;
-                                return { label: page.toString(), page };
-                            }),
-                            { label: '›', page: currentPage + 1 },
-                            { label: '»', page: totalPages }
-                        ].map(({ label, page }) => (
-                            <Button
-                                key={label}
-                                onClick={() => page >= 1 && page <= totalPages && page !== currentPage && fetchData(page)}
-                                disabled={loading || page === currentPage || page < 1 || page > totalPages}
-                                variant={currentPage === page ? "default" : "outline"}
-                                size="sm"
-                            >
-                                {label}
-                            </Button>
-                        ))}
-                    </div>
+                        <div className="grid gap-4">
+                            {wines.map((wine) => (
+                                <WineCard
+                                    key={wine.id}
+                                    wine={wine}
+                                    inCellar={cellarWines.has(wine.id)}
+                                    onCellarToggle={handleCellarToggle}
+                                    isLoggedIn={isLoggedIn}
+                                />
+                            ))}
+                        </div>
+
+                        {wines.length > 0 && totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-4">
+                                {[
+                                    { label: '«', page: 1 },
+                                    { label: '‹', page: currentPage - 1 },
+                                    ...Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                        let page: number;
+                                        if (totalPages <= 5) page = i + 1;
+                                        else if (currentPage <= 3) page = i + 1;
+                                        else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
+                                        else page = currentPage - 2 + i;
+                                        return { label: page.toString(), page };
+                                    }),
+                                    { label: '›', page: currentPage + 1 },
+                                    { label: '»', page: totalPages }
+                                ].map(({ label, page }) => (
+                                    <Button
+                                        key={label}
+                                        onClick={() => page >= 1 && page <= totalPages && page !== currentPage && fetchData(page)}
+                                        disabled={loading || page === currentPage || page < 1 || page > totalPages}
+                                        variant={currentPage === page ? "default" : "outline"}
+                                        size="sm"
+                                    >
+                                        {label}
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

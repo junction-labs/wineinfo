@@ -14,8 +14,6 @@ class Wine(BaseModel):
     province: str
     region_1: str
     region_2: str
-    taster_name: str
-    taster_twitter_handle: str
     variety: str
     winery: str
 
@@ -31,8 +29,6 @@ class PaginatedList[T](BaseModel):
         generic_types_only = True
 
 
-# These classes today are used for documentation purposes
-# but ideally they would also generate the RemoteService classes
 class ServiceMethodDef(typing.TypedDict):
     method: str
     path: str
@@ -64,11 +60,16 @@ CATALOG_SERVICE = {
     ),
 }
 
-
 class SearchRequest(BaseModel):
     query: str
     page: int = 1
     page_size: int = 20
+    filters: dict = {}
+    sort_by: str | None = None
+    sort_reverse: bool = False
+    fuzzy: bool = False
+    wildcard: bool = False
+    numeric_ranges: dict = {}
 
 
 SEARCH_SERVICE = {
@@ -79,22 +80,19 @@ SEARCH_SERVICE = {
         response=PaginatedList[int],
     )
 }
-
-
 class RecsRequest(BaseModel):
     query: str
     limit: int = 20
 
 
 RECS_SERVICE = {
-    "get_recommendations": ServiceMethodDef(
+    "semantic_search": ServiceMethodDef(
         method="GET",
         path="/recommendations/",
         params=RecsRequest,
-        response=PaginatedList[int],
+        response=List[int],
     )
 }
-
 
 class SQLRequest(BaseModel):
     query: str
@@ -104,5 +102,24 @@ class SQLRequest(BaseModel):
 PERSIST_SERVICE = {
     "do_sql": ServiceMethodDef(
         method="POST", path="/do_sql/", params=SQLRequest, response=List[Tuple]
+    )
+}
+
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class SommelierChatRequest(BaseModel):
+    message: str
+    conversation_history: List[ChatMessage] = []
+    cellar_wine_ids: List[int] = []
+
+class SommelierChatResponse(BaseModel):
+    response: str
+    recommended_wines: List[Wine]
+
+SOMMELIER_SERVICE = {
+    "chat": ServiceMethodDef(
+        method="POST", path="/chat/", params=SommelierChatRequest, response=SommelierChatResponse
     )
 }

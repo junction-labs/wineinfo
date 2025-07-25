@@ -106,3 +106,10 @@ Catalog:
 source .venv/bin/activate
 fastapi dev python_services/app/catalog_app.py --port 8001
 ```
+
+Sommelier with external account:
+
+```bash
+source .venv/bin/activate
+fastapi dev python_services/app/sommelier_app.py --port 8005
+```

@@ -6,6 +6,7 @@ class ServiceSettings(BaseSettings):
     search_service: str = "http://localhost:8002"
     recs_service: str = "http://localhost:8003"
     persist_service: str = "http://localhost:8004"
+    sommelier_service: str = "http://localhost:8005"
     use_junction: bool = False
     data_path: str = "python_services/data/gen"
     catalog_demo_mojibake: bool = False

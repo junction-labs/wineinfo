@@ -5,3 +5,4 @@ whoosh
 chromadb
 junction-python>=0.3.3
 yaspin
+openai

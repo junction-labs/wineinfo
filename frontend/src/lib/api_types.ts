@@ -33,3 +33,19 @@ export interface RecsRequest {
     query: string;
     limit: number;
 }
+
+export interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
+export interface SommelierChatRequest {
+    message: string;
+    conversation_history: ChatMessage[];
+    cellar_wine_ids: number[];
+}
+
+export interface SommelierChatResponse {
+    response: string;
+    recommended_wines: Wine[];
+}

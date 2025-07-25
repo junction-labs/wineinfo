@@ -8,15 +8,13 @@ from typing import Deque, Dict, List
 from fastapi import HTTPException
 
 from ..common.config import ServiceSettings
-from ..common.api import GetWineRequest, RecsRequest, Wine
+from ..common.api import RecsRequest, Wine
 
 
 class RecsServiceImpl:
     def __init__(
-        self, settings: ServiceSettings, reset: bool = False, catalog_service=None
-    ):
+        self, settings: ServiceSettings, reset: bool = False):
         self.recs_demo_failure = settings.recs_demo_failure
-        self.catalog_service = catalog_service
         path = os.path.join(settings.data_path, "recs_data")
         if reset and os.path.exists(path):
             shutil.rmtree(path)
@@ -72,7 +70,7 @@ class RecsServiceImpl:
                 400, "Service temporarily unavailable due to high query volume"
             )
 
-    def get_recommendations_unfiltered(self, params: RecsRequest) -> List[int]:
+    def semantic_search(self, params: RecsRequest) -> List[int]:
         q = {}
         q["n_results"] = params.limit
         q["query_texts"] = [params.query]
@@ -81,13 +79,3 @@ class RecsServiceImpl:
         if self.recs_demo_failure:
             self._check_failure_condition(params.query)
         return all_ids
-
-    def get_recommendations(self, params: RecsRequest) -> List[int]:
-        all_ids = self.get_recommendations_unfiltered(params)
-        # in a real RAG, we would call into catalog and get more
-        # info and iterate. In this case we just want to demonstrate
-        # we can call the catalog service and get junction routing
-        if len(all_ids) > 0:
-            self.catalog_service.get_wine(GetWineRequest(ids=all_ids))
-
-        return all_ids[: params.limit]

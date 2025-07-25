@@ -14,9 +14,7 @@ class BaggageManager:
         self._context.set(baggage)
 
     def parse_headers(self, headers) -> Dict[str, str]:
-        """Parse baggage headers into a dict"""
         baggage = {}
-        # Handle both single string and list of headers
         if isinstance(headers, str):
             headers = [headers]
 

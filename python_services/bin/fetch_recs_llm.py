@@ -22,4 +22,4 @@ args = parser.parse_args()
 settings = ServiceSettings()
 settings.data_path = args.data
 impl = RecsServiceImpl(settings, False)
-print(impl.get_recommendations_unfiltered(RecsRequest(query="red wine", limit=10)))
+print(impl.semantic_search(RecsRequest(query="red wine", limit=10)))

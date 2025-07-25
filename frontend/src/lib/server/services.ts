@@ -1,4 +1,4 @@
-import { Wine, PaginatedList, SearchRequest, RecsRequest } from '@/lib/api_types';
+import { Wine, PaginatedList, SearchRequest, RecsRequest, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
 import { HttpClient, HttpClientOptions } from '@/lib/server/httpClient';
 import { settings } from '@/lib/server/config';
 
@@ -47,6 +47,18 @@ export class RecsService {
     }
 }
 
+export class SommelierService {
+    constructor(private client: HttpClient) {
+    }
+
+    async chat(
+        request: SommelierChatRequest,
+        options: HttpClientOptions
+    ): Promise<SommelierChatResponse> {
+        return this.client.post('/chat/', request, options);
+    }
+}
+
 export class PersistService {
     constructor(private client: HttpClient) {
     }
@@ -63,4 +75,5 @@ export class PersistService {
 export const catalogService = new CatalogService(new HttpClient(settings.catalogService, settings.useJunction));
 export const searchService = new SearchService(new HttpClient(settings.searchService, settings.useJunction));
 export const recsService = new RecsService(new HttpClient(settings.recsService, settings.useJunction));
+export const sommelierService = new SommelierService(new HttpClient(settings.sommelierService, settings.useJunction));
 export const persistService = new PersistService(new HttpClient(settings.persistService, settings.useJunction));
