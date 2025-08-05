@@ -1,20 +1,18 @@
-"use client";
-import { useSession } from "next-auth/react";
-import type React from "react";
-import { useEffect, useRef, useState } from "react";
+'use client';
+import React, { useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { getCellarWines, addToCellar, removeFromCellar, searchWines, searchWinesSemantic } from '@/lib/actions/wineActions';
+import { type Wine } from '@/lib/api_types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-	addToCellar,
-	getCellarWines,
-	removeFromCellar,
-	searchWines,
-} from "@/lib/actions/wineActions";
-import type { Wine } from "@/lib/api_types";
+import SommelierChat from './SommelierChat';
+import { useSession } from 'next-auth/react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type TabType = 'catalog' | 'cellar' | 'chat';
+
 type NotificationType = 'success' | 'error';
 
 interface WineCatalogProps {
@@ -32,14 +30,9 @@ interface SearchInputProps {
 	onSearch: () => void;
 	loading: boolean;
 	placeholder: string;
+	searchType: 'exact' | 'semantic';
+	onSearchTypeChange: (type: 'exact' | 'semantic') => void;
 	isTextArea?: boolean;
-}
-
-interface WineCardProps {
-	wine: Wine;
-	inCellar: boolean;
-	onCellarToggle: (wine: Wine) => void;
-	isLoggedIn: boolean;
 }
 
 function SearchInput({
@@ -48,20 +41,31 @@ function SearchInput({
 	onSearch,
 	loading,
 	placeholder,
+	searchType,
+	onSearchTypeChange,
 	isTextArea = false,
 }: SearchInputProps) {
-	const InputComponent = isTextArea ? Textarea : Input;
-
 	return (
 		<div className="flex gap-2 mb-4">
-			<Input
-				placeholder={placeholder}
-				value={value}
-				onChange={(
-					e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-				) => onChange(e.target.value)}
-				onKeyPress={(e: React.KeyboardEvent) => e.key === "Enter" && onSearch()}
-			/>
+			<div className="flex-1 flex gap-2">
+				<Input
+					placeholder={placeholder}
+					value={value}
+					onChange={(
+						e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+					) => onChange(e.target.value)}
+					onKeyPress={(e: React.KeyboardEvent) => e.key === "Enter" && onSearch()}
+				/>
+				<Select value={searchType} onValueChange={onSearchTypeChange}>
+					<SelectTrigger className="w-32">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="exact">Exact</SelectItem>
+						<SelectItem value="semantic">Semantic</SelectItem>
+					</SelectContent>
+				</Select>
+			</div>
 			<Button onClick={onSearch} disabled={loading}>
 				{loading ? (
 					<div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -78,7 +82,12 @@ function WineCard({
 	inCellar,
 	onCellarToggle,
 	isLoggedIn,
-}: WineCardProps) {
+}: {
+	wine: Wine;
+	inCellar: boolean;
+	onCellarToggle: (wine: Wine) => void;
+	isLoggedIn: boolean;
+}) {
 	return (
 		<Card>
 			<CardContent className="p-4">
@@ -130,7 +139,7 @@ function WineCard({
 	);
 }
 
-// Load Testing Component
+
 function LoadTestingSection() {
 	const { data: session } = useSession();
 	const [isRunning, setIsRunning] = useState(false);
@@ -174,7 +183,7 @@ function LoadTestingSection() {
 			const makeRequest = async () => {
 				try {
 					const response = await fetch(
-						`/api/wine/recs?query=${encodeURIComponent(query)}`,
+						`/api/wine/embeddings?query=${encodeURIComponent(query)}`,
 					);
 					setStats((prev) => ({
 						...prev,
@@ -292,6 +301,7 @@ function LoadTestingSection() {
 export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 	const [activeTab, setActiveTab] = useState<TabType>("catalog");
 	const [searchTerm, setSearchTerm] = useState("");
+	const [searchType, setSearchType] = useState<'exact' | 'semantic'>('exact');
 	const [wines, setWines] = useState<Wine[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -321,11 +331,18 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 			}
 
 			if (activeTab === 'catalog') {
-				const data = await searchWines({
-					query: searchTerm,
-					page,
-					page_size: pageSize
-				});
+				// Choose search method based on search type
+				const data = searchType === 'semantic'
+					? await searchWinesSemantic({
+						query: searchTerm,
+						page,
+						page_size: pageSize
+					})
+					: await searchWines({
+						query: searchTerm,
+						page,
+						page_size: pageSize
+					});
 				wineData = data.items;
 				totalPages = data.total_pages;
 				total = data.total;
@@ -381,7 +398,7 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 			setTotalPages(0);
 			fetchData(1);
 		}
-	}, [activeTab, isLoggedIn]);
+	}, [activeTab]); // Remove searchType from dependencies
 
 	const tabs = [
 		{ id: 'catalog' as TabType, name: 'Wine Catalog' },
@@ -427,14 +444,25 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 				{activeTab !== 'chat' && (
 					<>
 						{activeTab === 'catalog' && (
-							<SearchInput
-								value={searchTerm}
-								onChange={setSearchTerm}
-								onSearch={() => fetchData(1)}
-								loading={loading}
-								placeholder="Search wines..."
-								isTextArea={false}
-							/>
+							<>
+								<div className="mb-2 text-sm text-muted-foreground">
+									{searchType === 'exact' ? (
+										"🔍 Exact Search: Find wines by specific terms, names, or regions"
+									) : (
+										"🧠 Semantic Search: Find wines by description, style, or preferences"
+									)}
+								</div>
+								<SearchInput
+									value={searchTerm}
+									onChange={setSearchTerm}
+									onSearch={() => fetchData(1)}
+									loading={loading}
+									placeholder="Search wines..."
+									searchType={searchType}
+									onSearchTypeChange={setSearchType}
+									isTextArea={false}
+								/>
+							</>
 						)}
 
 						{wines.length > 0 && totalPages > 1 && (

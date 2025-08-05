@@ -3,14 +3,14 @@ import junction.config as config
 
 from utils import kubectl_patch
 
-recs: config.Service = {
+embeddings: config.Service = {
     "type": "kube",
-    "name": "wineinfo-recs",
+    "name": "wineinfo-embeddings",
     "namespace": "default",
 }
 
 backend: config.Backend = {
-    "id": {**recs, "port": 80},
+    "id": {**embeddings, "port": 80},
     "lb": {
         "type": "RingHash",
         "min_ring_size": 1024,

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from .common.http_client import HttpClient
 from .common.config import ServiceSettings
-from .common.api_stubs import CatalogService, PersistService, RecsService, SearchService
+from .common.api_stubs import PersistService, EmbeddingsService, SearchService
 from .common.baggage import create_baggage_middleware
 from .services.sommelier_service_impl import SommelierServiceImpl
 from .common.api import SommelierChatRequest, SommelierChatResponse, Wine
@@ -9,19 +9,16 @@ from .common.api import SommelierChatRequest, SommelierChatResponse, Wine
 
 
 settings = ServiceSettings()
-catalog_service = CatalogService(
-    HttpClient(settings.catalog_service, settings.use_junction)
-)
 search_service = SearchService(
     HttpClient(settings.search_service, settings.use_junction)
 )
-recs_service = RecsService(
-    HttpClient(settings.recs_service, settings.use_junction)
+embeddings_service = EmbeddingsService(
+    HttpClient(settings.embeddings_service, settings.use_junction)
 )
 persist_service = PersistService(
     HttpClient(settings.persist_service, settings.use_junction)
 )
-impl = SommelierServiceImpl(catalog_service, search_service, recs_service, persist_service)
+impl = SommelierServiceImpl(persist_service, search_service, embeddings_service)
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())

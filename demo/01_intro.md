@@ -27,7 +27,7 @@ The WineInfo site is built for 2024, so of course, our informational wine
 website includes microservices and vector search.
 
 The site is made up of a Big Data catalog service, a semantic search service, a
-recommendations (recs) service, and a persistent store based on SQLite. 
+recommendations (embeddings) service, and a persistent store based on SQLite. 
 Those services are tied together with an API service that serves up a React
 frontend.
 
@@ -41,7 +41,7 @@ frontend.
                   └─────┬──────┘                │
         ┌───────────────┼───────────────┐       │
  ┌──────┴─────┐   ┌─────┴──────┐   ┌────┴─────┐ │
- │  Catalog   │   │  Search    │   │   Recs   │ │
+ │  Catalog   │   │  Search    │   │   Embeddings   │ │
  │  (Python)  │   │  (Python)  │   │ (Python) │ │
  └──────┬─────┘   └────┬───────┘   └────┬─────┘ │
         └──────────────┼────────────────┘       │

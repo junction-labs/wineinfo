@@ -7,9 +7,8 @@ data:
   DATA_PATH: /app/data/gen
   JUNCTION_ADS_SERVER: grpc://ezbake.junction:8008
   USE_JUNCTION: "true"
-  CATALOG_SERVICE: "http://wineinfo-catalog"
   SEARCH_SERVICE: "http://wineinfo-search"
-  RECS_SERVICE: "http://wineinfo-recs"
+  EMBEDDINGS_SERVICE: "http://wineinfo-embeddings"
   PERSIST_SERVICE: "http://wineinfo-persist"
   NEXTAUTH_URL: "http://localhost:8010"
   COLUMNS: "9999" # Helps FastAPI logs not wrap lines
@@ -53,54 +52,6 @@ spec:
   ports:
     - nodePort: 30010
       port: 3000
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wineinfo-catalog
-  labels:
-    app: wineinfo
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: wineinfo
-      service: catalog
-  template:
-    metadata:
-      labels:
-        app: wineinfo
-        service: catalog
-    spec:
-      containers:
-        - name: main
-          image: wineinfo-python:latest
-          imagePullPolicy: IfNotPresent
-          command:
-            [
-              "fastapi",
-              "run",
-              "/app/catalog_app.py",
-              "--host",
-              "0.0.0.0",
-              "--port",
-              "80",
-            ]
-          envFrom:
-            - configMapRef:
-                name: wineinfo-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: wineinfo-catalog
-spec:
-  type: ClusterIP
-  selector:
-    app: wineinfo
-    service: catalog
-  ports:
-    - port: 80
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -153,7 +104,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wineinfo-recs
+  name: wineinfo-embeddings
   labels:
     app: wineinfo
 spec:
@@ -161,12 +112,12 @@ spec:
   selector:
     matchLabels:
       app: wineinfo
-      service: recs
+      service: embeddings
   template:
     metadata:
       labels:
         app: wineinfo
-        service: recs
+        service: embeddings
     spec:
       containers:
         - name: main
@@ -176,7 +127,7 @@ spec:
             [
               "fastapi",
               "run",
-              "/app/recs_app.py",
+              "/app/embeddings_app.py",
               "--host",
               "0.0.0.0",
               "--port",
@@ -189,12 +140,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: wineinfo-recs
+  name: wineinfo-embeddings
 spec:
   type: ClusterIP
   selector:
     app: wineinfo
-    service: recs
+    service: embeddings
   ports:
     - port: 80
 ---

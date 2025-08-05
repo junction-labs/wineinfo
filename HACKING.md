@@ -86,11 +86,11 @@ source .venv/bin/activate
 fastapi dev python_services/app/persist_app.py --port 8004
 ```
 
-Recs:
+Embeddings:
 
 ```bash
 source .venv/bin/activate
-fastapi dev python_services/app/recs_app.py --port 8003
+fastapi dev python_services/app/embeddings_app.py --port 8003
 ```
 
 Search:
@@ -100,16 +100,9 @@ source .venv/bin/activate
 fastapi dev python_services/app/search_app.py --port 8002
 ```
 
-Catalog:
+Sommelier:
 
 ```bash
 source .venv/bin/activate
-fastapi dev python_services/app/catalog_app.py --port 8001
-```
-
-Sommelier with external account:
-
-```bash
-source .venv/bin/activate
-fastapi dev python_services/app/sommelier_app.py --port 8005
+fastapi dev python_services/app/sommelier_app.py --port 8001
 ```

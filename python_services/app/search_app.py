@@ -10,8 +10,8 @@ app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
 
 
-@app.get(SEARCH_SERVICE["search"]["path"])
+@app.get(SEARCH_SERVICE["catalog_search"]["path"])
 def search(
     params: Annotated[SearchRequest, Query()],
 ) -> PaginatedList[int]:
-    return impl.search(params)
+    return impl.catalog_search(params)

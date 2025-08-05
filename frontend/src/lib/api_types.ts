@@ -29,7 +29,7 @@ export interface SearchRequest {
     page_size: number;
 }
 
-export interface RecsRequest {
+export interface EmbeddingsSearchRequest {
     query: string;
     limit: number;
 }

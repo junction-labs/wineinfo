@@ -1,6 +1,5 @@
 
 from pydantic import TypeAdapter
-
 from .api import *
 from .http_client import HttpClient, HttpClientOptions
 
@@ -9,31 +8,20 @@ from .http_client import HttpClient, HttpClientOptions
 #          
 
 
-class CatalogService:
-    def __init__(self, client: HttpClient):
-        self.client = client
-
-    def get_wine(self, request: GetWineRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
-       return TypeAdapter(List).validate_python(self.client.get(CATALOG_SERVICE['get_wine']['path'], request.model_dump(), options))
-
-    def get_all_wines_paginated(self, request: GetAllWinesPaginatedRequest, options: HttpClientOptions = HttpClientOptions()) -> PaginatedList[Wine]:
-       return PaginatedList[Wine].model_validate(self.client.get(CATALOG_SERVICE['get_all_wines_paginated']['path'], request.model_dump(), options))
-
-
 class SearchService:
     def __init__(self, client: HttpClient):
         self.client = client
 
-    def search(self, request: SearchRequest, options: HttpClientOptions = HttpClientOptions()) -> PaginatedList[int]:
-       return PaginatedList[int].model_validate(self.client.get(SEARCH_SERVICE['search']['path'], request.model_dump(), options))
+    def catalog_search(self, request: SearchRequest, options: HttpClientOptions = HttpClientOptions()) -> PaginatedList[int]:
+       return PaginatedList[int].model_validate(self.client.get(SEARCH_SERVICE['catalog_search']['path'], request.model_dump(), options))
 
 
-class RecsService:
+class EmbeddingsService:
     def __init__(self, client: HttpClient):
         self.client = client
 
-    def semantic_search(self, request: RecsRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
-       return TypeAdapter(List).validate_python(self.client.get(RECS_SERVICE['semantic_search']['path'], request.model_dump(), options))
+    def catalog_search(self, request: EmbeddingsSearchRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
+       return TypeAdapter(List).validate_python(self.client.get(EMBEDDINGS_SERVICE['catalog_search']['path'], request.model_dump(), options))
 
 
 class PersistService:
@@ -43,6 +31,12 @@ class PersistService:
     def do_sql(self, request: SQLRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
        return TypeAdapter(List).validate_python(self.client.post(PERSIST_SERVICE['do_sql']['path'], request.model_dump(), options))
 
+    def get_wine(self, request: GetWineRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
+       return TypeAdapter(List).validate_python(self.client.get(PERSIST_SERVICE['get_wine']['path'], request.model_dump(), options))
+
+    def get_all_wines_paginated(self, request: GetAllWinesPaginatedRequest, options: HttpClientOptions = HttpClientOptions()) -> PaginatedList[Wine]:
+       return PaginatedList[Wine].model_validate(self.client.get(PERSIST_SERVICE['get_all_wines_paginated']['path'], request.model_dump(), options))
+
 
 class SommelierService:
     def __init__(self, client: HttpClient):
@@ -50,4 +44,5 @@ class SommelierService:
 
     def chat(self, request: SommelierChatRequest, options: HttpClientOptions = HttpClientOptions()) -> SommelierChatResponse:
        return SommelierChatResponse.model_validate(self.client.post(SOMMELIER_SERVICE['chat']['path'], request.model_dump(), options))
+
 

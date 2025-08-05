@@ -1,7 +1,7 @@
-from typing import List, Tuple
-from fastapi import FastAPI
+from typing import List, Tuple, Annotated
+from fastapi import FastAPI, Query
 from .common.config import ServiceSettings
-from .common.api import SQLRequest, PERSIST_SERVICE
+from .common.api import SQLRequest, PERSIST_SERVICE, Wine, PaginatedList
 from .common.baggage import create_baggage_middleware
 from .services.persist_service_impl import PersistServiceImpl
 
@@ -14,3 +14,15 @@ def do_sql(
     params: SQLRequest
 ) -> List[Tuple]:
     return impl.do_sql(params)
+
+@app.get(PERSIST_SERVICE["get_wine"]["path"])
+async def get_wine(
+    ids: Annotated[list[int] | None, Query()],
+) -> List[Wine]:
+    return impl.get_wine(ids)
+
+@app.get(PERSIST_SERVICE["get_all_wines_paginated"]["path"])
+async def get_all_wines_paginated(
+    page: int, page_size: int
+) -> PaginatedList[Wine]:
+    return impl.get_all_wines_paginated(page, page_size)

@@ -1,7 +1,7 @@
 'use server';
 
 import { Wine, PaginatedList, SearchRequest, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
-import { catalogService, searchService, recsService, sommelierService, persistService } from '@/lib/server/services';
+import { searchService, embeddingsService, sommelierService, persistService } from '@/lib/server/services';
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth";
 import { headers } from 'next/headers';
@@ -20,7 +20,7 @@ export async function getCellarWines(): Promise<Wine[]> {
     );
 
     const wineIds = result.map((row: any[]) => row[0]);
-    return wineIds.length > 0 ? await catalogService.getWine(wineIds, options) : [];
+    return wineIds.length > 0 ? await persistService.getWine(wineIds, options) : [];
 }
 
 export async function getCellarWineIds(): Promise<number[]> {
@@ -70,12 +70,12 @@ export async function searchWines(params: SearchRequest): Promise<PaginatedList<
 
     const { query, page, page_size } = params;
     if (!query.trim()) {
-        return await catalogService.getAllWinesPaginated(page, page_size, options);
+        return await persistService.getAllWinesPaginated(page, page_size, options);
     }
 
-    const results = await searchService.search(params, options);
+    const results = await searchService.catalog_search(params, options);
     const wines = results.items.length > 0
-        ? await catalogService.getWine(results.items, options)
+        ? await persistService.getWine(results.items, options)
         : [];
 
     return {
@@ -87,12 +87,45 @@ export async function searchWines(params: SearchRequest): Promise<PaginatedList<
     };
 }
 
+export async function searchWinesSemantic(params: { query: string; page: number; page_size: number }): Promise<PaginatedList<Wine>> {
+    const session = await getServerSession(authOptions);
+    const options = sessionOptions(await headers(), session);
+
+    const { query, page, page_size } = params;
+    if (!query.trim()) {
+        return await persistService.getAllWinesPaginated(page, page_size, options);
+    }
+
+    // Use semantic search via embeddings service
+    const wineIds = await embeddingsService.catalog_search({
+        query,
+        limit: page_size * 2 // Get more results to handle pagination
+    }, options);
+
+    // Handle pagination manually for semantic search
+    const start = (page - 1) * page_size;
+    const end = start + page_size;
+    const paginatedIds = wineIds.slice(start, end);
+
+    const wines = paginatedIds.length > 0
+        ? await persistService.getWine(paginatedIds, options)
+        : [];
+
+    return {
+        items: wines,
+        total: wineIds.length,
+        page,
+        page_size,
+        total_pages: Math.ceil(wineIds.length / page_size)
+    };
+}
+
 export async function recommendWines(query: string): Promise<Wine[]> {
     const session = await getServerSession(authOptions);
     const options = sessionOptions(await headers(), session);
 
-    const wineIds = await recsService.getRecommendations({ query, limit: 10 }, options);
-    return wineIds.length > 0 ? await catalogService.getWine(wineIds, options) : [];
+    const wineIds = await embeddingsService.catalog_search({ query, limit: 10 }, options);
+    return wineIds.length > 0 ? await persistService.getWine(wineIds, options) : [];
 }
 
 export async function chatWithSommelier(request: SommelierChatRequest): Promise<SommelierChatResponse> {

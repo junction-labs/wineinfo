@@ -66,7 +66,7 @@ Our architecture diagram momentarily looked like this:
              │                            └─────┬───────┘              │
              │                 ┌────────────────┼────────────────┐     │
       ┌──────┴──────┐   ┌──────┴──────┐   ┌─────┴───────┐   ┌────┴───┐ │
-      │ Catalog-Next│   │   Catalog   │   │   Search    │   │  Recs  │ │
+      │ Catalog-Next│   │   Catalog   │   │   Search    │   │  Embeddings  │ │
       └─────────────┘   └──────┬──────┘   └─────┬───────┘   └────┬───┘ │
                                └────────────────┼────────────────┘     │
                                                 │                      │

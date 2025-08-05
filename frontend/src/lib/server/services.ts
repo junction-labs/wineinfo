@@ -1,4 +1,4 @@
-import { Wine, PaginatedList, SearchRequest, RecsRequest, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
+import { Wine, PaginatedList, SearchRequest, EmbeddingsSearchRequest, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
 import { HttpClient, HttpClientOptions } from '@/lib/server/httpClient';
 import { settings } from '@/lib/server/config';
 
@@ -27,23 +27,23 @@ export class SearchService {
     constructor(private client: HttpClient) {
     }
 
-    async search(
+    async catalog_search(
         request: SearchRequest,
         options: HttpClientOptions
     ): Promise<PaginatedList<number>> {
-        return this.client.get('/search/', request, options);
+        return this.client.get('/catalog_search/', request, options);
     }
 }
 
-export class RecsService {
+export class EmbeddingsService {
     constructor(private client: HttpClient) {
     }
 
-    async getRecommendations(
-        request: RecsRequest,
+    async catalog_search(
+        request: EmbeddingsSearchRequest,
         options: HttpClientOptions
     ): Promise<number[]> {
-        return this.client.get('/recommendations/', request, options);
+        return this.client.get('/catalog_search/', request, options);
     }
 }
 
@@ -70,10 +70,24 @@ export class PersistService {
     ): Promise<T[]> {
         return this.client.post('/do_sql/', { query, params }, options);
     }
+
+    async getWine(
+        ids: number[],
+        options: HttpClientOptions
+    ): Promise<Wine[]> {
+        return this.client.get('/wines/', { ids }, options);
+    }
+
+    async getAllWinesPaginated(
+        page: number,
+        page_size: number,
+        options: HttpClientOptions
+    ): Promise<PaginatedList<Wine>> {
+        return this.client.get('/wines/batch/', { page, page_size }, options);
+    }
 }
 
-export const catalogService = new CatalogService(new HttpClient(settings.catalogService, settings.useJunction));
 export const searchService = new SearchService(new HttpClient(settings.searchService, settings.useJunction));
-export const recsService = new RecsService(new HttpClient(settings.recsService, settings.useJunction));
+export const embeddingsService = new EmbeddingsService(new HttpClient(settings.embeddingsService, settings.useJunction));
 export const sommelierService = new SommelierService(new HttpClient(settings.sommelierService, settings.useJunction));
 export const persistService = new PersistService(new HttpClient(settings.persistService, settings.useJunction));

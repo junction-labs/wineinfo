@@ -9,5 +9,5 @@ COPY ./app .
 COPY ./data ./data
 # fetch the llm from huggingface
 COPY ./bin .
-RUN python fetch_recs_llm.py
+RUN python fetch_embeddings_llm.py
 

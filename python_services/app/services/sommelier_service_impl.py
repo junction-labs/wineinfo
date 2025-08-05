@@ -2,24 +2,22 @@ from typing import List, Dict, Any
 import json
 import os
 from openai import OpenAI
-from ..common.api_stubs import CatalogService, SearchService, RecsService, PersistService
+from ..common.api_stubs import SearchService, EmbeddingsService, PersistService
 from ..common.api import (
-    GetWineRequest, RecsRequest, SearchRequest
+    GetWineRequest, EmbeddingsSearchRequest, SearchRequest
 )
 import re
 
 
 class SommelierServiceImpl:
     def __init__(self, 
-                 catalog_service: CatalogService, 
+                 persist_service: PersistService, 
                  search_service: SearchService,
-                 recs_service: RecsService,
-                 persist_service: PersistService,
+                 embeddings_service: EmbeddingsService,
                  ): 
-        self.catalog_service = catalog_service
-        self.search_service = search_service
-        self.recs_service = recs_service
         self.persist_service = persist_service
+        self.search_service = search_service
+        self.embeddings_service = embeddings_service
         
         if os.getenv("OPENAI_API_KEY"):
             self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -29,7 +27,7 @@ class SommelierServiceImpl:
     def _get_user_cellar_wines(self, cellar_wine_ids: List[int]) -> List[Dict[str, Any]]:
         if not cellar_wine_ids:
             return []
-        return self.catalog_service.get_wine(GetWineRequest(ids=cellar_wine_ids))
+        return self.persist_service.get_wine(GetWineRequest(ids=cellar_wine_ids))
 
     def _text_search(self, 
                         query: str,
@@ -56,17 +54,17 @@ class SommelierServiceImpl:
             page=1,
             page_size=limit
         )
-        result = self.search_service.search(search_request)
+        result = self.search_service.catalog_search(search_request)
         if len(result.items) > 0:
-            return self.catalog_service.get_wine(GetWineRequest(ids=result.items))
+            return self.persist_service.get_wine(GetWineRequest(ids=result.items))
         return []
   
 
     def _semantic_search(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
-        recs_request = RecsRequest(query=query, limit=limit)
-        result = self.recs_service.semantic_search(recs_request)
+        embeddings_request = EmbeddingsSearchRequest(query=query, limit=limit)
+        result = self.embeddings_service.catalog_search(embeddings_request)
         if result:
-            return self.catalog_service.get_wine(GetWineRequest(ids=result))
+            return self.persist_service.get_wine(GetWineRequest(ids=result))
         return []
 
     def _format_wines_for_context(self, wines: List[Dict[str, Any]]):

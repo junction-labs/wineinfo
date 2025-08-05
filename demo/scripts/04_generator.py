@@ -128,7 +128,7 @@ if __name__ == "__main__":
         "--verbose", action="store_true", help="Print detailed per-request results"
     )
     parser.add_argument(
-        "--url", type=str, help="The url prefix to request", default="http://localhost:8010/api/wine/recs?query="
+        "--url", type=str, help="The url prefix to request", default="http://localhost:8010/api/wine/embeddings?query="
     )
     parser.add_argument(
         "--vals", type=str, help="Comma separated list to attach to end of url", default="red,white,rose,pinot noir,france,italy,germany,greece,australia,portugal"

@@ -16,7 +16,7 @@ kubectl apply -f demo/deploy/04_ring_hash.yaml
 We could convince ourselves the problem exists by playing with multiple browser
 tabs, but it's easier to test by hitting the wineinfo API directly. This python
 program spins up ten threads, each hitting
-`http://localhost:8010/api/wine/recs` with their query,
+`http://localhost:8010/api/wine/embeddings` with their query,
 generating a new request every second.
 
 Run it as following:
@@ -34,7 +34,7 @@ need to handle ten unique requests per second, and each server can do 5, scaling
 up to 4 replicas should fix the problem. Let's try this:
 
 ```bash
-kubectl scale --replicas=4 deployment/wineinfo-recs
+kubectl scale --replicas=4 deployment/wineinfo-embeddings
 ```
 
 So should everything be better? Lets find out.
@@ -53,8 +53,8 @@ the problem: even though we have more servers, every single server is still
 seeing the whole set of queries:
 
 ```bash
-$ kubectl logs deployment/wineinfo-recs --tail=30 | grep GET | cut -c 38- | sort | uniq -c
-Found 3 pods, using pod/wineinfo-recs-7567f698cf-trmvq
+$ kubectl logs deployment/wineinfo-embeddings --tail=30 | grep GET | cut -c 38- | sort | uniq -c
+Found 3 pods, using pod/wineinfo-embeddings-7567f698cf-trmvq
    3 /recommendations/?query=australia&limit=10
    1 /recommendations/?query=france&limit=10
    4 /recommendations/?query=germany&limit=10
@@ -76,7 +76,7 @@ as the service scales up and down. Let's try it.
 
 ```bash
 $ python demo/scripts/04_ring_hash.py
-service/wineinfo-recs patched
+service/wineinfo-embeddings patched
 ```
 
 ```bash
@@ -89,7 +89,7 @@ No more failures. Looking at one of the pod's query logs, we can now see it only
 gets a subset of the queries:
 
 ```bash
-$ kubectl logs deployment/wineinfo-recs --tail=30 | grep GET | cut -c 38- | sort | uniq -c
+$ kubectl logs deployment/wineinfo-embeddings --tail=30 | grep GET | cut -c 38- | sort | uniq -c
    8 /recommendations/?query=france&limit=10
    7 /recommendations/?query=italy&limit=10
 ```
@@ -106,14 +106,14 @@ if you need to refresh your memory), it will use the configuration we're
 defining.
 
 ```python
-recs: config.Service = {
+embeddings: config.Service = {
     "type": "kube",
-    "name": "wineinfo-recs",
+    "name": "wineinfo-embeddings",
     "namespace": "default",
 }
 
 backend: config.Backend = {
-    "id": {**recs, "port": 80},
+    "id": {**embeddings, "port": 80},
     "lb": {
         "type": "RingHash",
         "minRingSize": 1024,
@@ -157,9 +157,9 @@ kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=catalog) -- py
 ```python
 import junction.requests
 session = junction.requests.Session()
-session.get("http://wineinfo-recs.default.svc.cluster.local/recommendations/?query=greece&limit=10")
+session.get("http://wineinfo-embeddings.default.svc.cluster.local/recommendations/?query=greece&limit=10")
 session.junction.dump_backends()
-[{'id': {'type': 'kube', 'name': 'wineinfo-recs', 'namespace': 'default', 'port': 80}, 'lb': {'type': 'RingHash', 'min_ring_size': 1024, 'hash_params': [{'type': 'QueryParam', 'name': 'query'}]}}]
+[{'id': {'type': 'kube', 'name': 'wineinfo-embeddings', 'namespace': 'default', 'port': 80}, 'lb': {'type': 'RingHash', 'min_ring_size': 1024, 'hash_params': [{'type': 'QueryParam', 'name': 'query'}]}}]
 ```
 
 We see the ring hash algorithm in place on the backend.

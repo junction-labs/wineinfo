@@ -7,8 +7,8 @@ sys.path.append(
     )
 )
 from app.common.config import ServiceSettings
-from app.services.recs_service_impl import RecsServiceImpl
-from app.common.api import RecsRequest
+from python_services.app.services.embeddings_service_impl import EmbeddingsServiceImpl
+from app.common.api import EmbeddingsSearchRequest
 
 parser = argparse.ArgumentParser(description="Generate wineinfo data")
 parser.add_argument(
@@ -21,5 +21,5 @@ parser.add_argument(
 args = parser.parse_args()
 settings = ServiceSettings()
 settings.data_path = args.data
-impl = RecsServiceImpl(settings, False)
-print(impl.semantic_search(RecsRequest(query="red wine", limit=10)))
+impl = EmbeddingsServiceImpl(settings, False)
+print(impl.catalog_search(EmbeddingsSearchRequest(query="red wine", limit=10)))

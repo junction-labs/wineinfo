@@ -45,7 +45,15 @@ class GetAllWinesPaginatedRequest(BaseModel):
     page_size: int
 
 
-CATALOG_SERVICE = {
+class SQLRequest(BaseModel):
+    query: str
+    params: list[str | int] | None
+
+
+PERSIST_SERVICE = {
+    "do_sql": ServiceMethodDef(
+        method="POST", path="/do_sql/", params=SQLRequest, response=List[Tuple]
+    ),
     "get_wine": ServiceMethodDef(
         method="GET",
         path="/wines/",
@@ -73,35 +81,24 @@ class SearchRequest(BaseModel):
 
 
 SEARCH_SERVICE = {
-    "search": ServiceMethodDef(
+    "catalog_search": ServiceMethodDef(
         method="GET",
-        path="/search/",
+        path="/catalog_search/",
         params=SearchRequest,
         response=PaginatedList[int],
     )
 }
-class RecsRequest(BaseModel):
+class EmbeddingsSearchRequest(BaseModel):
     query: str
     limit: int = 20
 
 
-RECS_SERVICE = {
-    "semantic_search": ServiceMethodDef(
+EMBEDDINGS_SERVICE = {
+    "catalog_search": ServiceMethodDef(
         method="GET",
-        path="/recommendations/",
-        params=RecsRequest,
+        path="/catalog_search/",
+        params=EmbeddingsSearchRequest,
         response=List[int],
-    )
-}
-
-class SQLRequest(BaseModel):
-    query: str
-    params: list[str | int] | None
-
-
-PERSIST_SERVICE = {
-    "do_sql": ServiceMethodDef(
-        method="POST", path="/do_sql/", params=SQLRequest, response=List[Tuple]
     )
 }
 

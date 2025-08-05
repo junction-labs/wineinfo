@@ -70,10 +70,10 @@ def generate_remote_service(
 
 
 services = {
-    "CATALOG_SERVICE": CATALOG_SERVICE,
     "SEARCH_SERVICE": SEARCH_SERVICE,
-    "RECS_SERVICE": RECS_SERVICE,
+    "EMBEDDINGS_SERVICE": EMBEDDINGS_SERVICE,
     "PERSIST_SERVICE": PERSIST_SERVICE,
+    "SOMMELIER_SERVICE": SOMMELIER_SERVICE,
 }
 print("""
 from pydantic import TypeAdapter

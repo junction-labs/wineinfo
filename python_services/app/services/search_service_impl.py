@@ -80,7 +80,7 @@ class SearchServiceImpl:
         del self.writer
 
 
-    def search(self, params: SearchRequest) -> PaginatedList[int]:
+    def catalog_search(self, params: SearchRequest) -> PaginatedList[int]:
         if self.search_demo_latency:
             if random.random() < 0.5:
                 time.sleep(10)
