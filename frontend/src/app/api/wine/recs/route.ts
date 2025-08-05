@@ -28,10 +28,12 @@ export async function GET(request: NextRequest) {
             [];
 
         return NextResponse.json(wines);
-    } catch (error) {
+    } catch (error: any) {
+        const status = error.status || 500;
+        const message = error.message || "Failed to get recommendations";
         return NextResponse.json(
-            { error: "Failed to get recommendations" },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

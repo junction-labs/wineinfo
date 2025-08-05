@@ -7,7 +7,6 @@ metadata:
 spec:
   ports:
     - port: 80
-      targetPort: 8000
   selector:
     app: wineinfo
     service: catalog
@@ -71,7 +70,7 @@ spec:
       - name: main
         image: wineinfo-python:latest
         imagePullPolicy: IfNotPresent
-        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "8000"]
+        command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "80"]
         envFrom:
         - configMapRef:
             name: wineinfo-config
