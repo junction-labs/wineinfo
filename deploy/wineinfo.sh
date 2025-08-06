@@ -26,7 +26,6 @@ import_images() {
 
 k3d_cluster() {
     local cluster_name=$1;
-
     if k3d cluster list | grep -q "${cluster_name}"; then
         echo "cluster ${cluster_name} exists"
     else

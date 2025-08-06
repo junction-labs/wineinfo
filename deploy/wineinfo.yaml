@@ -10,6 +10,7 @@ data:
   SEARCH_SERVICE: "http://wineinfo-search"
   EMBEDDINGS_SERVICE: "http://wineinfo-embeddings"
   PERSIST_SERVICE: "http://wineinfo-persist"
+  SOMMELIER_SERVICE: "http://wineinfo-sommelier"
   NEXTAUTH_URL: "http://localhost:8010"
   COLUMNS: "9999" # Helps FastAPI logs not wrap lines
 ---
@@ -194,5 +195,53 @@ spec:
   selector:
     app: wineinfo
     service: search
+  ports:
+    - port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-sommelier
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: sommelier
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: sommelier
+    spec:
+      containers:
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/sommelier_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "80",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-sommelier
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: sommelier
   ports:
     - port: 80

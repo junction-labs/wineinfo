@@ -35,9 +35,3 @@ can start the applcation:
 ```
 Once you're done, point your browser at <http://localhost:8010>, and you should
 see the working Wineinfo site. 
-
-## Begin The demo
-
-Once you click around the site, head to [the first part of the demo](demo/01_intro.md).
-
-![A screenshot of the demo UI](./demo/images/homepage.jpg)

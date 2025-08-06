@@ -4,7 +4,7 @@ import os
 from openai import OpenAI
 from ..common.api_stubs import SearchService, EmbeddingsService, PersistService
 from ..common.api import (
-    GetWineRequest, EmbeddingsSearchRequest, SearchRequest
+    GetWineRequest, EmbeddingsSearchRequest, SearchRequest, Wine
 )
 import re
 
@@ -24,11 +24,6 @@ class SommelierServiceImpl:
         else:
             self.client = None
 
-    def _get_user_cellar_wines(self, cellar_wine_ids: List[int]) -> List[Dict[str, Any]]:
-        if not cellar_wine_ids:
-            return []
-        return self.persist_service.get_wine(GetWineRequest(ids=cellar_wine_ids))
-
     def _text_search(self, 
                         query: str,
                         filters: Dict[str, Any] = None,
@@ -37,7 +32,7 @@ class SommelierServiceImpl:
                         sort_by: str = None,
                         sort_reverse: bool = False,
                         fuzzy: bool = False,
-                        limit: int = 10) -> Dict[str, Any]:
+                        limit: int = 10) -> List[Wine]:
         numeric_ranges = {}
         if price_range:
             numeric_ranges["price"] = price_range
@@ -60,7 +55,7 @@ class SommelierServiceImpl:
         return []
   
 
-    def _semantic_search(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def _semantic_search(self, query: str, limit: int = 10) -> List[Wine]:
         embeddings_request = EmbeddingsSearchRequest(query=query, limit=limit)
         result = self.embeddings_service.catalog_search(embeddings_request)
         if result:
@@ -94,7 +89,6 @@ Your role is to:
 - Understand the user's wine preferences, budget, occasion, and food pairings
 - Use the search tools to find the best recommendations
 - Provide detailed, knowledgeable wine advice with specific reasoning
-- Consider the user's existing cellar when making recommendations
 - Explain wine characteristics, regions, and pairing suggestions
 - Be conversational and educational while being helpful
 
@@ -106,7 +100,7 @@ When responding:
 - Provide specific wine recommendations with reasoning
 - Include educational content about wine regions, varieties, and characteristics
 - Consider food pairings when relevant
-- Mention if the user already has similar wines in their cellar
+- Mention if the user already has good wines in their cellar
 
 IMPORTANT: When you recommend specific wines, please include their wine IDs in your response. For example:
 "Here are my top recommendations:
@@ -185,15 +179,16 @@ Always format wine recommendations clearly and provide context about why you're 
                   conversation_history: List[Dict[str, str]], 
                   cellar_wine_ids: List[int]) -> Dict[str, Any]:
 
-        cellar_wines = self._get_user_cellar_wines(cellar_wine_ids)
+        cellar_wines = []
         cellar_context = ""
-        if cellar_wines:
+        if cellar_wine_ids:
+            cellar_wines = self.persist_service.get_wine(GetWineRequest(ids=cellar_wine_ids))
             cellar_context = f"\n\nUser's Cellar:\n{self._format_wines_for_context(cellar_wines)}"
         
         messages = [
             {"role": "system", "content": self._create_ai_system_prompt() + cellar_context},
         ]
-        for msg in conversation_history[-10:]:
+        for msg in conversation_history[-100:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
         messages.append({"role": "user", "content": message})
                 
@@ -208,7 +203,7 @@ Always format wine recommendations clearly and provide context about why you're 
         assistant_message = response.choices[0].message
 
         trace = []
-        all_found_wines = []
+        all_found_wines = {}
         count = 0
         while assistant_message.tool_calls and count < 5:  # Increased tool call limit
             trace.append("TRACE: On iteration: " + str(count))
@@ -221,7 +216,7 @@ Always format wine recommendations clearly and provide context about why you're 
                 tool_args = json.loads(tool_call.function.arguments)
                 
                 if tool_name == "text_search":
-                    wine_ids = self._text_search(
+                    wines = self._text_search(
                         query=tool_args.get("query", ""),
                         filters=tool_args.get("filters"),
                         price_range=tool_args.get("price_range"),
@@ -229,12 +224,12 @@ Always format wine recommendations clearly and provide context about why you're 
                         sort_reverse=tool_args.get("sort_reverse", False),
                         limit=tool_args.get("limit", 10)
                     )
-                    tool_result = self._format_wines_for_context(wine_ids)
-                    all_found_wines.extend(wine_ids)
+                    tool_result = self._format_wines_for_context(wines)
+                    all_found_wines.update({wine.id: wine for wine in wines})
                 elif tool_name == "semantic_search":
-                    wine_ids = self._semantic_search(tool_args["query"], tool_args.get("limit", 10))
-                    tool_result = self._format_wines_for_context(wine_ids)
-                    all_found_wines.extend(wine_ids)
+                    wines = self._semantic_search(tool_args["query"], tool_args.get("limit", 10))
+                    tool_result = self._format_wines_for_context(wines)
+                    all_found_wines.update({wine.id: wine for wine in wines})
                 else:
                     tool_result = "Tool not available"
                 trace.append("TRACE: Tool result: \n" + str(tool_result))
@@ -267,14 +262,12 @@ Always format wine recommendations clearly and provide context about why you're 
                     recommended_wine_ids.append(int(wine_id))
             
             if recommended_wine_ids:
-                wine_lookup = {wine.get('id'): wine for wine in all_found_wines if wine.get('id')}
-                cellar_wines = self._get_user_cellar_wines(cellar_wine_ids)
                 for wine in cellar_wines:
                     if wine.get('id'):
-                        wine_lookup[wine.get('id')] = wine
+                        all_found_wines[wine.get('id')] = wine
                 for wine_id in recommended_wine_ids:
-                    if wine_id in wine_lookup:
-                        recommended_wines.append(wine_lookup[wine_id])
+                    if wine_id in all_found_wines:
+                        recommended_wines.append(all_found_wines[wine_id])
             
             final_content = re.sub(r'\[Wine ID:\s*\d+\]|\[ID:\s*\d+\]', '', final_content)
             final_content = re.sub(r'\s+', ' ', final_content).strip()
@@ -322,4 +315,3 @@ Always format wine recommendations clearly and provide context about why you're 
             return self._fallback_chat(message)
         else:
             return self._ai_chat(message, conversation_history, cellar_wine_ids) 
-    

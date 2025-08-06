@@ -7,7 +7,7 @@ sys.path.append(
     )
 )
 from app.common.config import ServiceSettings
-from python_services.app.services.embeddings_service_impl import EmbeddingsServiceImpl
+from app.services.embeddings_service_impl import EmbeddingsServiceImpl
 from app.common.api import EmbeddingsSearchRequest
 
 parser = argparse.ArgumentParser(description="Generate wineinfo data")

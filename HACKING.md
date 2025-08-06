@@ -18,7 +18,7 @@ python3 python_services/bin/build_data.py
 ## Querying junction from a running container
 
 ```
-kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=catalog) -- python
+kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=persist) -- python
 ```
 
 Then typically:
