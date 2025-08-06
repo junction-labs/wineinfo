@@ -46,16 +46,7 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
         }
     }, [messageCount]);
 
-    // Load cellar wine IDs on component mount if user is logged in
-    useEffect(() => {
-        if (isLoggedIn) {
-            getCellarWineIds().then(ids => {
-                setCellarWineIds(new Set(ids));
-            }).catch(error => {
-                console.error('Error loading cellar wine IDs:', error);
-            });
-        }
-    }, [isLoggedIn]);
+
 
     const handleSendMessage = async () => {
         if (!inputMessage.trim() || isLoading) return;
@@ -85,8 +76,6 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
         setMessageCount(prev => prev + 1);
 
         try {
-            const cellarWineIdsArray = isLoggedIn ? Array.from(cellarWineIds) : [];
-
             const conversationHistory: ChatMessage[] = messages.map(msg => ({
                 role: msg.role,
                 content: msg.content
@@ -94,8 +83,7 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
 
             const response = await chatWithSommelier({
                 message: inputMessage,
-                conversation_history: conversationHistory,
-                cellar_wine_ids: cellarWineIdsArray
+                conversation_history: conversationHistory
             });
 
             const recommendedWines = response.recommended_wines;

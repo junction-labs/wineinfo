@@ -1,12 +1,11 @@
 'use client';
 import React, { useRef } from 'react';
 import { useState, useEffect } from 'react';
-import { getCellarWines, addToCellar, removeFromCellar, searchWines, searchWinesSemantic } from '@/lib/actions/wineActions';
+import { getCellarWineIds, getWinesByIds, addToCellar, removeFromCellar, searchWines, searchWinesSemantic } from '@/lib/actions/wineActions';
 import { type Wine } from '@/lib/api_types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import SommelierChat from './SommelierChat';
 import { useSession } from 'next-auth/react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -325,11 +324,6 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 		try {
 			let wineData: Wine[], totalPages: number, total: number;
 
-			let cellarWines: Wine[] = [];
-			if (isLoggedIn) {
-				cellarWines = await getCellarWines();
-			}
-
 			if (activeTab === 'catalog') {
 				// Choose search method based on search type
 				const data = searchType === 'semantic'
@@ -347,17 +341,26 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 				totalPages = data.total_pages;
 				total = data.total;
 			} else {
-				// cellar tab
-				wineData = cellarWines;
-				totalPages = 1;
-				total = cellarWines.length;
+				let cellarWineIds: number[] = [];
+				if (isLoggedIn) {
+					cellarWineIds = await getCellarWineIds();
+				}
+
+				const startIndex = (page - 1) * pageSize;
+				const endIndex = startIndex + pageSize;
+				const pageWineIds = cellarWineIds.slice(startIndex, endIndex);
+
+				wineData = await getWinesByIds(pageWineIds);
+				totalPages = Math.ceil(cellarWineIds.length / pageSize);
+				total = cellarWineIds.length;
+
+				setCellarWines(new Set(cellarWineIds));
 			}
 
 			setWines(wineData);
 			setCurrentPage(page);
 			setTotalPages(totalPages);
 			setTotal(total);
-			setCellarWines(new Set(cellarWines.map((wine) => wine.id)));
 		} catch (err) {
 			showNotification(`Failed to load data: ${err}`, "error");
 		} finally {
@@ -377,8 +380,18 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 					return next;
 				});
 				if (activeTab === "cellar") {
-					setWines((prev) => prev.filter((w) => w.id !== wine.id));
-					setTotal((prev) => prev - 1);
+					// Recalculate pagination after removing a wine
+					const newTotal = total - 1;
+					const newTotalPages = Math.ceil(newTotal / pageSize);
+					setTotal(newTotal);
+					setTotalPages(newTotalPages);
+
+					// If current page is now empty and not the first page, go to previous page
+					if (wines.length === 1 && currentPage > 1) {
+						fetchData(currentPage - 1);
+					} else {
+						fetchData(currentPage);
+					}
 				}
 				showNotification(`${wine.title} has been removed from your cellar.`);
 			} else {
@@ -398,7 +411,7 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 			setTotalPages(0);
 			fetchData(1);
 		}
-	}, [activeTab]); // Remove searchType from dependencies
+	}, [activeTab]);
 
 	const tabs = [
 		{ id: 'catalog' as TabType, name: 'Wine Catalog' },
@@ -463,6 +476,12 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 									isTextArea={false}
 								/>
 							</>
+						)}
+
+						{activeTab === 'cellar' && (
+							<div className="mb-2 text-sm text-muted-foreground">
+								🍷 Your Cellar: Browse and manage your collection of wines
+							</div>
 						)}
 
 						{wines.length > 0 && totalPages > 1 && (

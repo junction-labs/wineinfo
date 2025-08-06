@@ -26,3 +26,9 @@ async def get_all_wines_paginated(
     page: int, page_size: int
 ) -> PaginatedList[Wine]:
     return impl.get_all_wines_paginated(page, page_size)
+
+@app.get(PERSIST_SERVICE["get_wines_by_user_id"]["path"])
+async def get_wines_by_user_id(
+    user_id: int
+) -> List[Wine]:
+    return impl.get_wines_by_user_id(user_id)

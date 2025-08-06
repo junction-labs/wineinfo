@@ -13,6 +13,13 @@ class BaggageManager:
     def set_current(self, baggage: Dict[str, str]) -> None:
         self._context.set(baggage)
 
+    def get_user_id(self) -> int | None:
+        baggage = self.get_current()
+        user_id_str = baggage.get("user-id", "")
+        if user_id_str and user_id_str.isdigit():
+            return int(user_id_str)
+        return None
+
     def parse_headers(self, headers) -> Dict[str, str]:
         baggage = {}
         if isinstance(headers, str):

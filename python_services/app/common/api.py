@@ -50,6 +50,9 @@ class SQLRequest(BaseModel):
     params: list[str | int] | None
 
 
+class GetWinesByUserIdRequest(BaseModel):
+    user_id: int
+
 PERSIST_SERVICE = {
     "do_sql": ServiceMethodDef(
         method="POST", path="/do_sql/", params=SQLRequest, response=List[Tuple]
@@ -65,6 +68,12 @@ PERSIST_SERVICE = {
         path="/wines/batch/",
         params=GetAllWinesPaginatedRequest,
         response=PaginatedList[Wine],
+    ),
+    "get_wines_by_user_id": ServiceMethodDef(
+        method="GET",
+        path="/wines/user/",
+        params=GetWinesByUserIdRequest,
+        response=List[Wine],
     ),
 }
 
@@ -109,7 +118,6 @@ class ChatMessage(BaseModel):
 class SommelierChatRequest(BaseModel):
     message: str
     conversation_history: List[ChatMessage] = []
-    cellar_wine_ids: List[int] = []
 
 class SommelierChatResponse(BaseModel):
     response: str

@@ -42,7 +42,6 @@ export interface ChatMessage {
 export interface SommelierChatRequest {
     message: string;
     conversation_history: ChatMessage[];
-    cellar_wine_ids: number[];
 }
 
 export interface SommelierChatResponse {

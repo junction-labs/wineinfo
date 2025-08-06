@@ -7,21 +7,6 @@ import { authOptions } from "@/lib/auth";
 import { headers } from 'next/headers';
 import { sessionOptions } from '@/lib/server/httpClient';
 
-export async function getCellarWines(): Promise<Wine[]> {
-    const session = await getServerSession(authOptions);
-    const options = sessionOptions(await headers(), session);
-    if (!session?.user || !(session.user as any).id) {
-        throw new Error("User not authenticated");
-    }
-    const result = await persistService.doSql<[number]>(
-        "SELECT wine_id FROM cellar WHERE user_id = ?",
-        [(session.user as any).id],
-        options
-    );
-
-    const wineIds = result.map((row: any[]) => row[0]);
-    return wineIds.length > 0 ? await persistService.getWine(wineIds, options) : [];
-}
 
 export async function getCellarWineIds(): Promise<number[]> {
     const session = await getServerSession(authOptions);
@@ -36,6 +21,13 @@ export async function getCellarWineIds(): Promise<number[]> {
     );
 
     return result.map((row: any[]) => row[0]);
+}
+
+export async function getWinesByIds(wineIds: number[]): Promise<Wine[]> {
+    const session = await getServerSession(authOptions);
+    const options = sessionOptions(await headers(), session);
+
+    return wineIds.length > 0 ? await persistService.getWine(wineIds, options) : [];
 }
 
 export async function addToCellar(wineId: number) {
@@ -96,17 +88,15 @@ export async function searchWinesSemantic(params: { query: string; page: number;
         return await persistService.getAllWinesPaginated(page, page_size, options);
     }
 
-    // Use semantic search via embeddings service
     const wineIds = await embeddingsService.catalog_search({
         query,
         limit: page_size * 2 // Get more results to handle pagination
     }, options);
 
-    // Handle pagination manually for semantic search
+    // Handle pagination manually
     const start = (page - 1) * page_size;
     const end = start + page_size;
     const paginatedIds = wineIds.slice(start, end);
-
     const wines = paginatedIds.length > 0
         ? await persistService.getWine(paginatedIds, options)
         : [];
@@ -118,14 +108,6 @@ export async function searchWinesSemantic(params: { query: string; page: number;
         page_size,
         total_pages: Math.ceil(wineIds.length / page_size)
     };
-}
-
-export async function recommendWines(query: string): Promise<Wine[]> {
-    const session = await getServerSession(authOptions);
-    const options = sessionOptions(await headers(), session);
-
-    const wineIds = await embeddingsService.catalog_search({ query, limit: 10 }, options);
-    return wineIds.length > 0 ? await persistService.getWine(wineIds, options) : [];
 }
 
 export async function chatWithSommelier(request: SommelierChatRequest): Promise<SommelierChatResponse> {

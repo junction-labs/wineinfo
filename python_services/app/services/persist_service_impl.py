@@ -101,12 +101,47 @@ class PersistServiceImpl:
                 found_ids.add(wine.id)
             
             missing_ids = [wine_id for wine_id in ids if wine_id not in found_ids]
-        
+            
         if missing_ids:
             raise HTTPException(
                 status_code=404, detail=f"Wines not found: {missing_ids}"
             )
+            
+        return wines
+
+    def get_wines_by_user_id(self, user_id: int) -> List[Wine]:
+        """Get all wines in a user's cellar by user_id"""
+        wines = []
         
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT w.id, w.title, w.country, w.description, w.designation, w.points, w.price, w.province, w.region_1, w.region_2, w.variety, w.winery 
+                FROM wine w
+                INNER JOIN cellar c ON w.id = c.wine_id
+                WHERE c.user_id = ?
+                """,
+                (user_id,)
+            )
+            
+            for row in cursor.fetchall():
+                wine = Wine(
+                    id=row[0],
+                    title=row[1],
+                    country=row[2],
+                    description=row[3],
+                    designation=row[4],
+                    points=row[5],
+                    price=row[6],
+                    province=row[7],
+                    region_1=row[8],
+                    region_2=row[9],
+                    variety=row[10],
+                    winery=row[11]
+                )
+                wines.append(wine)
+            
         return wines
 
     def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
@@ -148,52 +183,6 @@ class PersistServiceImpl:
             page_size=page_size,
             total_pages=(total + page_size - 1) // page_size,
         )
-
-    def add_wine_to_cellar(self, user_id: int, wine_id: int) -> None:
-        """Add a wine to a customer's cellar"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO cellar (user_id, wine_id) VALUES (?, ?)",
-                (user_id, wine_id)
-            )
-            conn.commit()
-
-    def get_cellar_wines(self, user_id: int) -> List[Wine]:
-        """Get all wines in a customer's cellar"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT w.id, w.title, w.country, w.description, w.designation, 
-                       w.points, w.price, w.province, w.region_1, w.region_2, 
-                       w.variety, w.winery
-                FROM wine w
-                JOIN cellar c ON w.id = c.wine_id
-                WHERE c.user_id = ?
-                """,
-                (user_id,)
-            )
-            
-            wines = []
-            for row in cursor.fetchall():
-                wine = Wine(
-                    id=row[0],
-                    title=row[1],
-                    country=row[2],
-                    description=row[3],
-                    designation=row[4],
-                    points=row[5],
-                    price=row[6],
-                    province=row[7],
-                    region_1=row[8],
-                    region_2=row[9],
-                    variety=row[10],
-                    winery=row[11]
-                )
-                wines.append(wine)
-            
-            return wines
 
     def do_sql(self, params: SQLRequest) -> List[Tuple]:
         with sqlite3.connect(self.db_path) as conn:

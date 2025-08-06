@@ -4,7 +4,7 @@ import os
 from openai import OpenAI
 from ..common.api_stubs import SearchService, EmbeddingsService, PersistService
 from ..common.api import (
-    GetWineRequest, EmbeddingsSearchRequest, SearchRequest, Wine
+    EmbeddingsSearchRequest, SearchRequest, Wine
 )
 import re
 
@@ -176,13 +176,13 @@ Always format wine recommendations clearly and provide context about why you're 
 
     def _ai_chat(self, 
                   message: str, 
-                  conversation_history: List[Dict[str, str]], 
-                  cellar_wine_ids: List[int]) -> Dict[str, Any]:
-
-        cellar_wines = []
+                  conversation_history: List[Dict[str, str]],
+                  user_id: int | None = None) -> Dict[str, Any]:
+        
+        # Get user's cellar wines if authenticated
         cellar_context = ""
-        if cellar_wine_ids:
-            cellar_wines = self.persist_service.get_wine(GetWineRequest(ids=cellar_wine_ids))
+        if user_id:
+            cellar_wines = self.persist_service.get_wines_by_user_id(user_id)
             cellar_context = f"\n\nUser's Cellar:\n{self._format_wines_for_context(cellar_wines)}"
         
         messages = [
@@ -262,9 +262,7 @@ Always format wine recommendations clearly and provide context about why you're 
                     recommended_wine_ids.append(int(wine_id))
             
             if recommended_wine_ids:
-                for wine in cellar_wines:
-                    if wine.get('id'):
-                        all_found_wines[wine.get('id')] = wine
+                # Get recommended wines from search results
                 for wine_id in recommended_wine_ids:
                     if wine_id in all_found_wines:
                         recommended_wines.append(all_found_wines[wine_id])
@@ -309,9 +307,9 @@ Always format wine recommendations clearly and provide context about why you're 
 
     def chat(self, 
              message: str, 
-             conversation_history: List[Dict[str, str]], 
-             cellar_wine_ids: List[int]) -> Dict[str, Any]:
+             conversation_history: List[Dict[str, str]],
+             user_id: int | None = None) -> Dict[str, Any]:
         if not self.client:
             return self._fallback_chat(message)
         else:
-            return self._ai_chat(message, conversation_history, cellar_wine_ids) 
+            return self._ai_chat(message, conversation_history, user_id) 

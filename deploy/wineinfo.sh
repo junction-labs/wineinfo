@@ -33,7 +33,7 @@ k3d_cluster() {
     fi
 }
 
-run_ezbake() {
+run_control_plane() {
     kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml
     kubectl apply -f https://github.com/junction-labs/ezbake/releases/latest/download/install-for-cluster.yml
 }
@@ -52,7 +52,7 @@ main() {
     import_images "${cluster}"
 
     kubectl config use-context k3d-"${cluster}"
-    run_ezbake
+    run_control_plane
     run_wineinfo
 }
 
