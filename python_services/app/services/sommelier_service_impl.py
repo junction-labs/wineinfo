@@ -15,14 +15,25 @@ class SommelierServiceImpl:
                  persist_service: PersistService, 
                  search_service: SearchService,
                  embeddings_service: EmbeddingsService,
+                 openai_api_key: str,
+                 openai_model: str = "gpt-4",
+                 openai_temperature: float = 0.7,
+                 openai_max_tokens: int = 1500,
+                 openai_tool_choice: str = "auto",
+                 openai_base_url: str = "https://api.openai.com/v1",
                  ): 
         self.persist_service = persist_service
         self.search_service = search_service
         self.embeddings_service = embeddings_service
+        self.openai_model = openai_model
+        self.openai_temperature = openai_temperature
+        self.openai_max_tokens = openai_max_tokens
+        self.openai_tool_choice = openai_tool_choice
+        self.openai_base_url = openai_base_url
         
-        if os.getenv("OPENAI_API_KEY"):
+        if openai_api_key:
             print("OPENAI_API_KEY is set")
-            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            self.client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
         else:
             print("OPENAI_API_KEY is not set")
             self.client = None
@@ -92,10 +103,7 @@ class SommelierServiceImpl:
     def _create_ai_system_prompt(self) -> str:
         """Create the system prompt for the AI agent"""
         return """You are an expert sommelier and wine advisor with access to a comprehensive wine database and advanced search tools. You have access to:
-
-1. **Semantic Search**: Semantic search for wine using a description
-2. **Text Search**: Powerful text search with filtering, sorting, and filtering
-
+1. **Text Search**: Powerful text search with filtering, sorting, and filtering
 
 Your role is to:
 - Understand the user's wine preferences, budget, occasion, and food pairings
@@ -108,11 +116,8 @@ When responding:
 - Provide specific wine recommendations with reasoning
 -- Include educational content about wine regions, varieties, and characteristics
 - Only return results that have been found either in the cellar, or by the tools
--- Try and return 5 wines total, including 2 from the user's cellar whenever possible
-- Use the most appropriate tool to find results not in the cellar. 
--- For specific requests, use exact search. 
--- For semantic matching, use semantic search, but it's probably better to use exact search for specific requests first.
--- Feel free to use multiple tools in a single response and choose amongst the best results
+-- Return at most 5 total wines. At least 2 from the user's cellar whenever possible
+- Use specific queries to explore catalog - ie. don't return cheap and try again
 - if the search tool returns poor results
 -- Don't just return to the user telling them that are bad results. 
 -- Call the tools again with a better query based on your knowledge. 
@@ -178,28 +183,29 @@ Always format wine recommendations clearly and provide context about why you're 
                         "required": []
                     }
                 }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "semantic_search",
-                    "description": "Semantic search for wine recommendations based on descriptions and preferences.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "Description of desired wine characteristics or preferences"
-                            },
-                            "limit": {
-                                "type": "integer",
-                                "description": "Maximum number of recommendations to return (default 10)"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
             }
+            # ,
+            # {
+            #     "type": "function",
+            #     "function": {
+            #         "name": "semantic_search",
+            #         "description": "Semantic search for wine recommendations based on descriptions and preferences.",
+            #         "parameters": {
+            #             "type": "object",
+            #             "properties": {
+            #                 "query": {
+            #                     "type": "string",
+            #                     "description": "Description of desired wine characteristics or preferences"
+            #                 },
+            #                 "limit": {
+            #                     "type": "integer",
+            #                     "description": "Maximum number of recommendations to return (default 10)"
+            #                 }
+            #             },
+            #             "required": ["query"]
+            #         }
+            #     }
+            # }
         ]
 
     def _generate_search_intent(self, tool_name: str, tool_args: Dict[str, Any]) -> str:
@@ -288,12 +294,12 @@ Always format wine recommendations clearly and provide context about why you're 
         stream_user_summary("Calling into LLM, iteration: " + str(count))
 
         response = self.client.chat.completions.create(
-            model="gpt-4",
+            model=self.openai_model,
             messages=messages,
             tools=self._create_ai_tools_schema(),
-            tool_choice="auto",
-            temperature=0.7,
-            max_tokens=1500
+            tool_choice=self.openai_tool_choice,
+            temperature=self.openai_temperature,
+            max_tokens=self.openai_max_tokens
         )
         assistant_message = response.choices[0].message
         while assistant_message.tool_calls and count < 5:
@@ -337,12 +343,12 @@ Always format wine recommendations clearly and provide context about why you're 
             count += 1
             stream_user_summary("Calling back into LLM, iteration: " + str(count))
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model=self.openai_model,
                 messages=messages,
                 tools=self._create_ai_tools_schema(),
-                tool_choice="auto",
-                temperature=0.7,
-                max_tokens=1500
+                tool_choice=self.openai_tool_choice,
+                temperature=self.openai_temperature,
+                max_tokens=self.openai_max_tokens
             )
             assistant_message = response.choices[0].message
             
@@ -352,21 +358,15 @@ Always format wine recommendations clearly and provide context about why you're 
         if final_content:
             recommended_wine_ids = []
             wine_id_matches = re.findall(r'\[Wine ID:\s*(\d+)\]|\[ID:\s*(\d+)\]', final_content)
-            stream_trace(f"Found {len(wine_id_matches)} wine ID matches in response")
             for match in wine_id_matches:
                 wine_id = match[0] if match[0] else match[1]
                 if wine_id:
                     recommended_wine_ids.append(int(wine_id))
-                    stream_trace(f"Extracted wine ID: {wine_id}")
             
-            stream_trace(f"All found wines keys: {list(all_found_wines.keys())}")
             if recommended_wine_ids:
                 for wine_id in recommended_wine_ids:
                     if wine_id in all_found_wines:
                         recommended_wines.append(all_found_wines[wine_id])
-                        stream_trace(f"Added wine {wine_id} to recommendations")
-                    else:
-                        stream_trace(f"Wine {wine_id} not found in all_found_wines")
             
             final_content = re.sub(r'\[Wine ID:\s*\d+\]|\[ID:\s*\d+\]', '', final_content)
             final_content = final_content.strip()

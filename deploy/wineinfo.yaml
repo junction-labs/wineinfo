@@ -5,7 +5,7 @@ metadata:
   name: wineinfo-config
 data:
   DATA_PATH: /app/data/gen
-  JUNCTION_ADS_SERVER: grpc://ezbake.junction:8008
+  JUNCTION_ADS_SERVER: grpc://relay.junction.svc.cluster.local:8888
   USE_JUNCTION: "true"
   SEARCH_SERVICE: "http://wineinfo-search"
   EMBEDDINGS_SERVICE: "http://wineinfo-embeddings"
@@ -13,6 +13,12 @@ data:
   SOMMELIER_SERVICE: "http://wineinfo-sommelier"
   NEXTAUTH_URL: "http://localhost:8010"
   COLUMNS: "9999" # Helps FastAPI logs not wrap lines
+  OPENAI_API_KEY: "" # Will be overridden by secret if available
+  OPENAI_MODEL: "gpt-4"
+  OPENAI_TEMPERATURE: "0.7"
+  OPENAI_MAX_TOKENS: "1500"
+  OPENAI_TOOL_CHOICE: "auto"
+  OPENAI_BASE_URL: "https://api.openai.com/v1"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -233,6 +239,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: wineinfo-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
+                  optional: true
 ---
 apiVersion: v1
 kind: Service

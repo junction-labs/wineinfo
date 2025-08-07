@@ -33,13 +33,20 @@ k3d_cluster() {
     fi
 }
 
-run_control_plane() {
-    kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/experimental-install.yaml
-    kubectl apply -f https://github.com/junction-labs/ezbake/releases/latest/download/install-for-cluster.yml
+create_openai_secret() {
+    if [ -n "${OPENAI_API_KEY:-}" ]; then
+        echo "Creating OpenAI API key secret..."
+        kubectl create secret generic openai-api-key \
+            --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+    else
+        echo "OPENAI_API_KEY not set, skipping secret creation"
+    fi
 }
 
 run_wineinfo() {
     kubectl delete -f ./deploy/wineinfo.yaml  || true
+    create_openai_secret
     kubectl apply -f ./deploy/wineinfo.yaml
 }
 
@@ -52,7 +59,6 @@ main() {
     import_images "${cluster}"
 
     kubectl config use-context k3d-"${cluster}"
-    run_control_plane
     run_wineinfo
 }
 

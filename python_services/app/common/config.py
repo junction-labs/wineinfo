@@ -11,3 +11,9 @@ class ServiceSettings(BaseSettings):
     sommelier_demo_include_cellar: bool = False
     search_demo_latency: bool = False
     embeddings_demo_failure: bool = False
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4"
+    openai_temperature: float = 0.7
+    openai_max_tokens: int = 1500
+    openai_tool_choice: str = "auto"
+    openai_base_url: str = "https://api.openai.com/v1"

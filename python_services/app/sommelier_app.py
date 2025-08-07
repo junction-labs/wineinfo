@@ -4,12 +4,12 @@ from .common.http_client import HttpClient
 from .common.config import ServiceSettings
 from .common.api_stubs import PersistService, EmbeddingsService, SearchService
 from .common.baggage import create_baggage_middleware, baggage_mgr
-from .services.sommelier_service_impl import SommelierServiceImpl, StateCallback
+from .services.sommelier_service_impl import SommelierServiceImpl
 from .common.api import SommelierChatRequest
 import json
 import asyncio
 import queue
-from typing import AsyncGenerator, Tuple
+from typing import AsyncGenerator
 import traceback
 
 settings = ServiceSettings()
@@ -22,7 +22,17 @@ embeddings_service = EmbeddingsService(
 persist_service = PersistService(
     HttpClient(settings.persist_service, settings.use_junction)
 )
-impl = SommelierServiceImpl(persist_service, search_service, embeddings_service)
+impl = SommelierServiceImpl(
+    persist_service, 
+    search_service, 
+    embeddings_service,
+    openai_api_key=settings.openai_api_key, 
+    openai_model=settings.openai_model,
+    openai_temperature=settings.openai_temperature,
+    openai_max_tokens=settings.openai_max_tokens,
+    openai_tool_choice=settings.openai_tool_choice,
+    openai_base_url=settings.openai_base_url
+)
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
