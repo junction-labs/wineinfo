@@ -109,10 +109,3 @@ export async function searchWinesSemantic(params: { query: string; page: number;
         total_pages: Math.ceil(wineIds.length / page_size)
     };
 }
-
-export async function chatWithSommelier(request: SommelierChatRequest): Promise<SommelierChatResponse> {
-    const session = await getServerSession(authOptions);
-    const options = sessionOptions(await headers(), session);
-
-    return await sommelierService.chat(request, options);
-}

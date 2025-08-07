@@ -1,5 +1,6 @@
 from typing import Annotated
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
+import json
 from .common.baggage import create_baggage_middleware
 from .common.config import ServiceSettings
 from .common.api import SearchRequest, PaginatedList, SEARCH_SERVICE
@@ -10,8 +11,8 @@ app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
 
 
-@app.get(SEARCH_SERVICE["catalog_search"]["path"])
+@app.post(SEARCH_SERVICE["catalog_search"]["path"])
 def search(
-    params: Annotated[SearchRequest, Query()],
+    params: SearchRequest,
 ) -> PaginatedList[int]:
     return impl.catalog_search(params)

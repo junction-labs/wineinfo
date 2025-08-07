@@ -13,36 +13,39 @@ class SearchService:
         self.client = client
 
     def catalog_search(self, request: SearchRequest, options: HttpClientOptions = HttpClientOptions()) -> PaginatedList[int]:
-       return PaginatedList[int].model_validate(self.client.get(SEARCH_SERVICE['catalog_search']['path'], request.model_dump(), options))
+       return PaginatedList[int].model_validate(self.client.post(SEARCH_SERVICE['catalog_search']['path'], request.model_dump(), options))
 
 
 class EmbeddingsService:
     def __init__(self, client: HttpClient):
         self.client = client
 
-    def catalog_search(self, request: EmbeddingsSearchRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
-       return TypeAdapter(List).validate_python(self.client.get(EMBEDDINGS_SERVICE['catalog_search']['path'], request.model_dump(), options))
+    def catalog_search(self, request: EmbeddingsSearchRequest, options: HttpClientOptions = HttpClientOptions()) -> List[int]:
+       return TypeAdapter(List[int]).validate_python(self.client.get(EMBEDDINGS_SERVICE['catalog_search']['path'], request.model_dump(), options))
 
 
 class PersistService:
     def __init__(self, client: HttpClient):
         self.client = client
 
-    def do_sql(self, request: SQLRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
-       return TypeAdapter(List).validate_python(self.client.post(PERSIST_SERVICE['do_sql']['path'], request.model_dump(), options))
+    def do_sql(self, request: SQLRequest, options: HttpClientOptions = HttpClientOptions()) -> List[Tuple]:
+       return TypeAdapter(List[Tuple]).validate_python(self.client.post(PERSIST_SERVICE['do_sql']['path'], request.model_dump(), options))
 
-    def get_wine(self, request: GetWineRequest, options: HttpClientOptions = HttpClientOptions()) -> List:
-       return TypeAdapter(List).validate_python(self.client.get(PERSIST_SERVICE['get_wine']['path'], request.model_dump(), options))
+    def get_wine(self, request: GetWineRequest, options: HttpClientOptions = HttpClientOptions()) -> List[Wine]:
+       return TypeAdapter(List[Wine]).validate_python(self.client.get(PERSIST_SERVICE['get_wine']['path'], request.model_dump(), options))
 
     def get_all_wines_paginated(self, request: GetAllWinesPaginatedRequest, options: HttpClientOptions = HttpClientOptions()) -> PaginatedList[Wine]:
        return PaginatedList[Wine].model_validate(self.client.get(PERSIST_SERVICE['get_all_wines_paginated']['path'], request.model_dump(), options))
+
+    def get_wines_by_user_id(self, request: GetWinesByUserIdRequest, options: HttpClientOptions = HttpClientOptions()) -> List[Wine]:
+       return TypeAdapter(List[Wine]).validate_python(self.client.get(PERSIST_SERVICE['get_wines_by_user_id']['path'], request.model_dump(), options))
 
 
 class SommelierService:
     def __init__(self, client: HttpClient):
         self.client = client
 
-    def chat(self, request: SommelierChatRequest, options: HttpClientOptions = HttpClientOptions()) -> SommelierChatResponse:
-       return SommelierChatResponse.model_validate(self.client.post(SOMMELIER_SERVICE['chat']['path'], request.model_dump(), options))
+    def chat(self, request: SommelierChatRequest, options: HttpClientOptions = HttpClientOptions()) -> StreamingResponse:
+       return self.client.post(SOMMELIER_SERVICE['chat']['path'], request.model_dump(), options)
 
 

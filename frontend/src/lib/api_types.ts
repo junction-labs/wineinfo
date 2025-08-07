@@ -27,6 +27,12 @@ export interface SearchRequest {
     query: string;
     page: number;
     page_size: number;
+    filters?: Record<string, any>;
+    sort_by?: string;
+    sort_reverse?: boolean;
+    fuzzy?: boolean;
+    wildcard?: boolean;
+    numeric_ranges?: Record<string, any>;
 }
 
 export interface EmbeddingsSearchRequest {

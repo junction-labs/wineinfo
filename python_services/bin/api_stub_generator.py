@@ -1,17 +1,39 @@
 import os, sys
-
 sys.path.append(
     os.path.abspath(
         os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
     )
 )
-from typing import Dict, get_origin
+from typing import Dict, get_origin, get_args
 from python_services.app.common.api import *
 
 
 def snake_to_pascal(snake_str: str) -> str:
     components = snake_str.split("_")
     return "".join(x.title() for x in components)
+
+
+def format_return_type(response_type) -> str:
+    if response_type is None:
+        return "None"
+    origin = get_origin(response_type)
+    if origin is None:
+        return response_type.__name__
+    
+    args = get_args(response_type)
+    if origin == list:
+        if args:
+            return f"List[{args[0].__name__}]"
+        else:
+            return "List"
+    elif hasattr(origin, '__name__'):
+        # Handle other generic types like PaginatedList[T]
+        if args:
+            return f"{origin.__name__}[{args[0].__name__}]"
+        else:
+            return origin.__name__
+    else:
+        return response_type.__name__
 
 
 def validate_service_def(
@@ -35,10 +57,7 @@ def generate_method(service_name, method_name: str, method_def: dict) -> str:
     )
     params += "options: HttpClientOptions = HttpClientOptions()"
 
-    if method_def["response"] is None:
-        return_type = "None"
-    else:
-        return_type = method_def["response"].__name__
+    return_type = format_return_type(method_def["response"])
 
     request_var = "None" if method_def["params"] is None else "request.model_dump()"
     api_call = f"self.client.{method_def['method'].lower()}({service_name}['{method_name}']['path'], {request_var}, options)"
@@ -47,6 +66,8 @@ def generate_method(service_name, method_name: str, method_def: dict) -> str:
         body = api_call
     elif get_origin(method_def["response"]) == list:
         body = f"TypeAdapter({return_type}).validate_python({api_call})"
+    elif method_def["response"] == StreamingResponse:
+        body = api_call
     else:
         body = f"{return_type}.model_validate({api_call})"
 
@@ -63,8 +84,8 @@ def generate_remote_service(
     def __init__(self, client: HttpClient):
         self.client = client
 """
-    for name, defn in service_def.items():
-        ret += generate_method(service_name, name, defn)
+    for name, definition in service_def.items():
+        ret += generate_method(service_name, name, definition)
         ret += "\n"
     return ret
 

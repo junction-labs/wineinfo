@@ -31,7 +31,7 @@ export class SearchService {
         request: SearchRequest,
         options: HttpClientOptions
     ): Promise<PaginatedList<number>> {
-        return this.client.get('/catalog_search/', request, options);
+        return this.client.post('/catalog_search/', request, options);
     }
 }
 
@@ -51,11 +51,11 @@ export class SommelierService {
     constructor(private client: HttpClient) {
     }
 
-    async chat(
+    async chatStream(
         request: SommelierChatRequest,
         options: HttpClientOptions
-    ): Promise<SommelierChatResponse> {
-        return this.client.post('/chat/', request, options);
+    ): Promise<Response> {
+        return this.client.postStream('/chat/', request, options);
     }
 }
 

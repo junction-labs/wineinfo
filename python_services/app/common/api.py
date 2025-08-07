@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import typing
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 
@@ -91,7 +92,7 @@ class SearchRequest(BaseModel):
 
 SEARCH_SERVICE = {
     "catalog_search": ServiceMethodDef(
-        method="GET",
+        method="POST",
         path="/catalog_search/",
         params=SearchRequest,
         response=PaginatedList[int],
@@ -119,12 +120,13 @@ class SommelierChatRequest(BaseModel):
     message: str
     conversation_history: List[ChatMessage] = []
 
+# this is just for documentation purposes of what the final response will look like
 class SommelierChatResponse(BaseModel):
     response: str
     recommended_wines: List[Wine]
 
 SOMMELIER_SERVICE = {
     "chat": ServiceMethodDef(
-        method="POST", path="/chat/", params=SommelierChatRequest, response=SommelierChatResponse
+        method="POST", path="/chat/", params=SommelierChatRequest, response=StreamingResponse
     )
 }

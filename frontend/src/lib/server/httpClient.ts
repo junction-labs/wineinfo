@@ -61,6 +61,16 @@ export class HttpClient {
 		data?: any,
 		options: HttpClientOptions = emptyOptions(),
 	): Promise<T> {
+		const response = await this.makeRequest(method, path, data, options);
+		return response.json();
+	}
+
+	private async makeRequest(
+		method: "GET" | "POST",
+		path: string,
+		data?: any,
+		options: HttpClientOptions = emptyOptions(),
+	): Promise<Response> {
 		const headers: Headers = new Headers(options.additionalHeaders);
 		if (method === "POST" && !headers.has("Content-Type")) {
 			headers.set("Content-Type", "application/json");
@@ -97,7 +107,7 @@ export class HttpClient {
 			(error as any).statusText = response.statusText;
 			throw error;
 		}
-		return response.json();
+		return response;
 	}
 
 	async get<T>(
@@ -114,5 +124,21 @@ export class HttpClient {
 		options: HttpClientOptions = emptyOptions(),
 	): Promise<T> {
 		return this.request<T>("POST", path, data, options);
+	}
+
+	async postStream(
+		path: string,
+		data: any,
+		options: HttpClientOptions = emptyOptions(),
+	): Promise<Response> {
+		return this.makeRequest("POST", path, data, options);
+	}
+
+	async getStream(
+		path: string,
+		data?: any,
+		options: HttpClientOptions = emptyOptions(),
+	): Promise<Response> {
+		return this.makeRequest("GET", path, data, options);
 	}
 }

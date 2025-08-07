@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, Wine } from '@/lib/api_types';
-import { chatWithSommelier, getCellarWineIds, addToCellar, removeFromCellar } from '@/lib/actions/wineActions';
+import { addToCellar, removeFromCellar, getCellarWineIds } from '@/lib/actions/wineActions';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ interface DisplayMessage extends ChatMessage {
     timestamp: Date;
     isLoading?: boolean;
     recommendedWines?: Wine[];
+    traceMessages?: string[];
+    userSummaries?: string[];
 }
 
 export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
@@ -31,22 +33,34 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
     const [inputMessage, setInputMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [messageCount, setMessageCount] = useState(1); // Track message count for scroll behavior
+    const [messageCount, setMessageCount] = useState(1);
     const [cellarWineIds, setCellarWineIds] = useState<Set<number>>(new Set());
     const [cellarLoadingStates, setCellarLoadingStates] = useState<Set<number>>(new Set());
+    const [showDetailedTraces, setShowDetailedTraces] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Only scroll when new messages are added, not on initial mount
+    useEffect(() => {
+        if (isLoggedIn) {
+            const fetchCellar = async () => {
+                try {
+                    const cellarIds = await getCellarWineIds();
+                    setCellarWineIds(new Set(cellarIds));
+                } catch (error) {
+                    console.error('Error fetching cellar:', error);
+                }
+            };
+            fetchCellar();
+        }
+    }, [isLoggedIn]);
+
     useEffect(() => {
         if (messageCount > 1) {
             scrollToBottom();
         }
     }, [messageCount]);
-
-
 
     const handleSendMessage = async () => {
         if (!inputMessage.trim() || isLoading) return;
@@ -58,19 +72,19 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
             timestamp: new Date()
         };
 
-        // Add user message
         setMessages(prev => [...prev, userMessage]);
         setMessageCount(prev => prev + 1);
         setInputMessage('');
         setIsLoading(true);
 
-        // Add loading message
         const loadingMessage: DisplayMessage = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
             content: 'Thinking...',
             timestamp: new Date(),
-            isLoading: true
+            isLoading: true,
+            traceMessages: [],
+            userSummaries: []
         };
         setMessages(prev => [...prev, loadingMessage]);
         setMessageCount(prev => prev + 1);
@@ -81,20 +95,102 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                 content: msg.content
             }));
 
-            const response = await chatWithSommelier({
-                message: inputMessage,
-                conversation_history: conversationHistory
+            const response = await fetch('/api/wine/chat-stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: inputMessage,
+                    conversation_history: conversationHistory
+                }),
             });
 
-            const recommendedWines = response.recommended_wines;
+            if (!response.ok) {
+                throw new Error('Failed to get response');
+            }
 
-            setMessages(prev => prev.slice(0, -1).concat([{
-                id: (Date.now() + 2).toString(),
-                role: 'assistant',
-                content: response.response,
-                timestamp: new Date(),
-                recommendedWines: recommendedWines
-            }]));
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
+            let finalResponse = '';
+            let recommendedWines: Wine[] = [];
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            switch (data.type) {
+                                case 'status':
+                                    // Update loading message with status
+                                    setMessages(prev => prev.map(msg =>
+                                        msg.isLoading
+                                            ? { ...msg, content: data.message }
+                                            : msg
+                                    ));
+                                    break;
+
+                                case 'trace':
+                                    // Add detailed trace message
+                                    setMessages(prev => prev.map(msg =>
+                                        msg.isLoading
+                                            ? {
+                                                ...msg,
+                                                traceMessages: [...(msg.traceMessages || []), data.message]
+                                            }
+                                            : msg
+                                    ));
+                                    break;
+
+                                case 'user':
+                                    // Add user summary message
+                                    setMessages(prev => prev.map(msg =>
+                                        msg.isLoading
+                                            ? {
+                                                ...msg,
+                                                userSummaries: [...(msg.userSummaries || []), data.message]
+                                            }
+                                            : msg
+                                    ));
+                                    break;
+
+                                case 'complete':
+                                    finalResponse = data.response;
+                                    recommendedWines = data.recommended_wines;
+                                    break;
+
+                                case 'error':
+                                    throw new Error(data.message);
+                            }
+                        } catch (error) {
+                            console.error('Error parsing SSE data:', error);
+                        }
+                    }
+                }
+            }
+
+            // Replace loading message with final response
+            setMessages(prev => {
+                const loadingMessage = prev[prev.length - 1];
+                return prev.slice(0, -1).concat([{
+                    id: (Date.now() + 2).toString(),
+                    role: 'assistant',
+                    content: finalResponse,
+                    timestamp: new Date(),
+                    recommendedWines: recommendedWines,
+                    traceMessages: loadingMessage.traceMessages // Preserve trace messages
+                }]);
+            });
             setMessageCount(prev => prev + 1);
 
         } catch (error) {
@@ -166,6 +262,48 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                             } ${message.isLoading ? 'animate-pulse' : ''}`}
                                     >
                                         <div className="whitespace-pre-wrap">{message.content}</div>
+
+                                        {/* User Summaries */}
+                                        {message.userSummaries && message.userSummaries.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-border">
+                                                <div className="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">
+                                                    🤖 What I'm doing:
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {message.userSummaries.map((summary, index) => (
+                                                        <div key={index} className="text-sm text-gray-700 dark:text-gray-300 bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                                                            {summary}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Detailed Traces (Toggleable) */}
+                                        {message.traceMessages && message.traceMessages.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-border">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                                        Debug Information:
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setShowDetailedTraces(!showDetailedTraces)}
+                                                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                                    >
+                                                        {showDetailedTraces ? 'Hide Details' : 'Show Details'}
+                                                    </button>
+                                                </div>
+                                                {showDetailedTraces && (
+                                                    <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded max-h-32 overflow-y-auto">
+                                                        {message.traceMessages.map((trace, index) => (
+                                                            <div key={index} className="text-xs text-gray-600 dark:text-gray-400">
+                                                                {trace}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {message.recommendedWines && message.recommendedWines.length > 0 && (
                                             <div className="mt-3 pt-3 border-t border-border">
