@@ -1,5 +1,20 @@
 # WineInfo Demo Script
 
+This script is intended to be used to demo the Junction Control Plane running in a k8s cluster.  
+
+## Prereqs
+
+> [!IMPORTANT]  
+> Please make sure that the `JUNCTION_ADS_SERVER` variable in [wineinfo.yaml](../deploy/wineinfo.yaml)  
+is set to a GRPC url that resolves to the Relay XDS server from wherever WineInfo is deployed.  
+>  
+> For example, if both WineInfo and the Junction Control Plane are deployed  
+to the same k8s cluster, with default values, the Relay XDS server should be accessible at  
+`grpc://relay.junction.svc.cluster.local:8009`
+
+* A running instance of the Junction Control Plane
+* A k8s cluster to deploy WineInfo to
+
 ## Routing/traffic splitting
 
 Features:
