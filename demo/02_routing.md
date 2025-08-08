@@ -246,7 +246,7 @@ An easy way to interact with Junction is to open a Python REPL on a running
 Python service:
 
 ```bash
-kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=catalog) -- python
+kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=persist) -- python
 ```
 
 Try looking at the Routes that exist for the catalog or search service:
@@ -256,7 +256,7 @@ import junction
 import json
 
 j = junction.Junction()
-print(json.dumps(j.resolve_route("GET", "http://wineinfo-catalog.default.svc.cluster.local", {}), indent=4))
+print(json.dumps(j.resolve_route("http://wineinfo-persist"), indent=4))
 
 print(json.dumps(j.dump_routes()))
 ```

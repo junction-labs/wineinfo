@@ -5,7 +5,7 @@ metadata:
   name: wineinfo-config
 data:
   DATA_PATH: /app/data/gen
-  JUNCTION_ADS_SERVER: grpc://relay.junction.svc.cluster.local:8888
+  JUNCTION_ADS_SERVER: "grpc://relay.junction:8009"
   USE_JUNCTION: "true"
   SEARCH_SERVICE: "http://wineinfo-search"
   EMBEDDINGS_SERVICE: "http://wineinfo-embeddings"
