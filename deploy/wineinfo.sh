@@ -68,17 +68,6 @@ create_openai_secret() {
     fi
 }
 
-run_wineinfo() {
-    if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
-        echo "Creating namespace: ${NAMESPACE}"
-        kubectl create namespace "${NAMESPACE}"
-    else
-        echo "Namespace ${NAMESPACE} already exists"
-    fi
-    kubectl delete -f ./deploy/wineinfo.yaml -n "${NAMESPACE}" || true
-    create_openai_secret
-    kubectl apply -f ./deploy/wineinfo.yaml -n "${NAMESPACE}"
-}
 
 main() {
     local cluster="junction-wineinfo"
@@ -95,7 +84,15 @@ main() {
         kubectl config use-context k3d-"${cluster}"
     fi
 
-    run_wineinfo
+    if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+        echo "Creating namespace: ${NAMESPACE}"
+        kubectl create namespace "${NAMESPACE}"
+    else
+        echo "Namespace ${NAMESPACE} already exists"
+    fi
+    kubectl delete -f ./deploy/wineinfo.yaml -n "${NAMESPACE}" || true
+    create_openai_secret
+    kubectl apply -f ./deploy/wineinfo.yaml -n "${NAMESPACE}"
 }
 
 set -x

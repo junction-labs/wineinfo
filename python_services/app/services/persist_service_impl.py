@@ -191,3 +191,14 @@ class PersistServiceImpl:
                 ret = cursor.fetchall()
                 conn.commit()
                 return ret
+
+    def add_wine_to_cellar(self, user_id: int, wine_id: int) -> None:
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO cellar (user_id, wine_id) VALUES (?, ?)
+                """,
+                (user_id, wine_id)
+            )
+            conn.commit()

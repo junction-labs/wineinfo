@@ -132,7 +132,6 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                             const data = JSON.parse(line.slice(6));
                             switch (data.type) {
                                 case 'status':
-                                    // Update loading message with status
                                     setMessages(prev => prev.map(msg =>
                                         msg.isLoading
                                             ? { ...msg, content: data.message }
@@ -141,7 +140,6 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                     break;
 
                                 case 'trace':
-                                    // Add detailed trace message
                                     setMessages(prev => prev.map(msg =>
                                         msg.isLoading
                                             ? {
@@ -153,7 +151,6 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                     break;
 
                                 case 'user':
-                                    // Add user summary message
                                     setMessages(prev => prev.map(msg =>
                                         msg.isLoading
                                             ? {
@@ -179,7 +176,6 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                 }
             }
 
-            // Replace loading message with final response
             setMessages(prev => {
                 const loadingMessage = prev[prev.length - 1];
                 return prev.slice(0, -1).concat([{
@@ -188,14 +184,13 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                     content: finalResponse,
                     timestamp: new Date(),
                     recommendedWines: recommendedWines,
-                    traceMessages: loadingMessage.traceMessages // Preserve trace messages
+                    traceMessages: loadingMessage.traceMessages
                 }]);
             });
             setMessageCount(prev => prev + 1);
 
         } catch (error) {
             console.error('Error sending message:', error);
-            // Replace loading message with error
             setMessages(prev => prev.slice(0, -1).concat([{
                 id: (Date.now() + 3).toString(),
                 role: 'assistant',
@@ -245,10 +240,9 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
 
     return (
         <div className="flex flex-col max-w-4xl mx-auto">
-            {/* Messages area - uses viewport height minus space for header, tabs, input, etc. */}
-            <Card className="mb-4">
+            <Card className="mb-4 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
                 <CardContent className="p-4">
-                    <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+                    <ScrollArea className="h-[calc(100vh-350px)] pr-4">
                         <div className="space-y-4">
                             {messages.map((message) => (
                                 <div
@@ -256,22 +250,22 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted'
+                                        className={`max-w-[80%] rounded-lg p-4 ${message.role === 'user'
+                                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                                            : 'bg-gray-50 border border-gray-200'
                                             } ${message.isLoading ? 'animate-pulse' : ''}`}
                                     >
-                                        <div className="whitespace-pre-wrap">{message.content}</div>
+                                        <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
 
-                                        {/* User Summaries */}
                                         {message.userSummaries && message.userSummaries.length > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-border">
-                                                <div className="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">
-                                                    🤖 What I'm doing:
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <div className="text-sm font-semibold mb-2 text-green-600 flex items-center gap-2">
+                                                    <span>🤖</span>
+                                                    <span>What I'm doing:</span>
                                                 </div>
-                                                <div className="space-y-1">
+                                                <div className="space-y-2">
                                                     {message.userSummaries.map((summary, index) => (
-                                                        <div key={index} className="text-sm text-gray-700 dark:text-gray-300 bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                                                        <div key={index} className="text-sm text-gray-700 bg-green-50 p-3 rounded-lg border border-green-200">
                                                             {summary}
                                                         </div>
                                                     ))}
@@ -279,24 +273,24 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                             </div>
                                         )}
 
-                                        {/* Detailed Traces (Toggleable) */}
                                         {message.traceMessages && message.traceMessages.length > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-border">
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                                        Debug Information:
+                                                    <div className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                                        <span>🔧</span>
+                                                        <span>Debug Information:</span>
                                                     </div>
                                                     <button
                                                         onClick={() => setShowDetailedTraces(!showDetailedTraces)}
-                                                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                                        className="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
                                                     >
                                                         {showDetailedTraces ? 'Hide Details' : 'Show Details'}
                                                     </button>
                                                 </div>
                                                 {showDetailedTraces && (
-                                                    <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded max-h-32 overflow-y-auto">
+                                                    <div className="text-xs font-mono bg-gray-100 p-3 rounded-lg max-h-32 overflow-y-auto border border-gray-200">
                                                         {message.traceMessages.map((trace, index) => (
-                                                            <div key={index} className="text-xs text-gray-600 dark:text-gray-400">
+                                                            <div key={index} className="text-xs text-gray-600">
                                                                 {trace}
                                                             </div>
                                                         ))}
@@ -306,37 +300,51 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                         )}
 
                                         {message.recommendedWines && message.recommendedWines.length > 0 && (
-                                            <div className="mt-3 pt-3 border-t border-border">
-                                                <div className="text-sm font-semibold mb-2">Recommended Wines:</div>
-                                                <div className="space-y-2">
+                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                <div className="text-sm font-semibold mb-3 text-gray-900 flex items-center gap-2">
+                                                    <span>🍷</span>
+                                                    <span>Recommended Wines:</span>
+                                                </div>
+                                                <div className="space-y-3">
                                                     {message.recommendedWines.map((wine) => {
                                                         const isInCellar = cellarWineIds.has(wine.id);
                                                         const isLoading = cellarLoadingStates.has(wine.id);
 
                                                         return (
-                                                            <Card key={wine.id} className="p-2">
+                                                            <Card key={wine.id} className="p-3 border border-gray-200 hover:shadow-md transition-shadow">
                                                                 <div className="flex justify-between items-start">
-                                                                    <div className="text-sm flex-1">
-                                                                        <div className="font-medium">{wine.title}</div>
-                                                                        <div className="text-muted-foreground">
-                                                                            {wine.winery} • {wine.variety} • ${wine.price}
+                                                                    <div className="text-sm flex-1 min-w-0">
+                                                                        <div className="font-semibold text-gray-900 mb-1 leading-tight">
+                                                                            {wine.title}
                                                                         </div>
-                                                                        <div className="text-xs text-muted-foreground mt-1">
-                                                                            {wine.country}, {wine.province} • {wine.points} pts
+                                                                        <div className="text-muted-foreground mb-1">
+                                                                            <span className="font-medium">{wine.winery}</span>
+                                                                            <span className="text-gray-400 mx-1">•</span>
+                                                                            <span className="font-medium">{wine.variety}</span>
+                                                                        </div>
+                                                                        <div className="text-xs text-muted-foreground">
+                                                                            <span>{wine.country}, {wine.province}</span>
+                                                                            <span className="text-gray-400 mx-1">•</span>
+                                                                            <span className="font-semibold">${wine.price}</span>
+                                                                            <span className="text-gray-400 mx-1">•</span>
+                                                                            <span>{wine.points} pts</span>
                                                                         </div>
                                                                     </div>
                                                                     {isLoggedIn && (
                                                                         <Button
-                                                                            variant={isInCellar ? "destructive" : "default"}
+                                                                            variant={isInCellar ? "outline" : "default"}
                                                                             size="sm"
                                                                             onClick={() => handleCellarAction(wine.id, isInCellar ? 'remove' : 'add')}
                                                                             disabled={isLoading}
-                                                                            className="ml-2 flex-shrink-0"
+                                                                            className={`ml-3 flex-shrink-0 h-8 transition-all duration-200 ${isInCellar
+                                                                                ? 'border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300'
+                                                                                : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                                                                                }`}
                                                                         >
                                                                             {isLoading ? (
                                                                                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
                                                                             ) : (
-                                                                                isInCellar ? "Remove" : "Add to Cellar"
+                                                                                    isInCellar ? "🗑️ Remove" : "🍷 Add"
                                                                             )}
                                                                         </Button>
                                                                     )}
@@ -348,7 +356,7 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                                             </div>
                                         )}
 
-                                        <div className="text-xs text-muted-foreground mt-2">
+                                        <div className="text-xs text-muted-foreground mt-3 opacity-70">
                                             {message.timestamp.toLocaleTimeString()}
                                         </div>
                                     </div>
@@ -360,9 +368,8 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                 </CardContent>
             </Card>
 
-            {/* Sticky input area at bottom of viewport */}
-            <div className="sticky bottom-0 bg-background border-t p-4 -mx-4">
-                <div className="flex gap-2 max-w-4xl mx-auto">
+            <div className="flex-shrink-0 bg-background border-t border-gray-200 p-4 -mx-4 shadow-lg">
+                <div className="flex gap-3 max-w-4xl mx-auto">
                     <Input
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
@@ -372,11 +379,12 @@ export default function SommelierChat({ isLoggedIn }: SommelierChatProps) {
                             : "Ask about wine recommendations, food pairings, or general wine questions..."
                         }
                         disabled={isLoading}
-                        className="flex-1"
+                        className="flex-1 h-10 text-base"
                     />
                     <Button
                         onClick={handleSendMessage}
                         disabled={isLoading || !inputMessage.trim()}
+                        className="h-10 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                     >
                         {isLoading ? (
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

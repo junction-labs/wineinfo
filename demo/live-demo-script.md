@@ -1,6 +1,38 @@
 # WineInfo Demo Script
 
-## Routing/traffic splitting
+Outline:
+
+1. Multicluster
+- spin up a new cluster
+- start up a somellier in it
+- show it
+
+To work:
+- need a add cluster button so can add creds after the fact
+- need to make relay contactable from kind (maybe it already is??)
+
+2. Routing/traffic splitting
+
+- update second cluster to have a new service name
+- put in place route in UI
+- update the second cluster wineinfo to have fix.
+- show it only having an effect for customer 2.
+
+
+3. Client side load balancing 
+
+- as below
+
+4. Argo
+
+To work:
+- need to emit route, and watch it
+
+
+
+
+
+
 
 Features:
 

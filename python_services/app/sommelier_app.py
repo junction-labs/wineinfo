@@ -23,16 +23,10 @@ persist_service = PersistService(
     HttpClient(settings.persist_service, settings.use_junction)
 )
 impl = SommelierServiceImpl(
+    settings,
     persist_service, 
     search_service, 
-    embeddings_service,
-    openai_api_key=settings.openai_api_key, 
-    openai_model=settings.openai_model,
-    openai_temperature=settings.openai_temperature,
-    openai_max_tokens=settings.openai_max_tokens,
-    openai_tool_choice=settings.openai_tool_choice,
-    openai_base_url=settings.openai_base_url
-)
+    embeddings_service)
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
