@@ -106,38 +106,30 @@ class SearchServiceImpl:
                 
                 base_query = parser.parse(params.query)
             else:
-                print("No query provided, using Every() query")
                 base_query = Every()
 
             filters = []
             for field, value in params.filters.items():
                 if isinstance(value, list):
-                    print(f"Adding OR filter for field '{field}' with values: {value}")
                     filters.append(Or([Term(field, v) for v in value]))
                 else:
-                    print(f"Adding term filter for field '{field}' with value: {value}")
                     filters.append(Term(field, value))
 
             for field, range_dict in params.numeric_ranges.items():
                 if 'min' in range_dict or 'max' in range_dict:
                     min_val = range_dict.get('min')
                     max_val = range_dict.get('max')
-                    print(f"Adding numeric range filter for field '{field}': min={min_val}, max={max_val}")
                     filters.append(NumericRange(field, min_val, max_val))
 
             query = base_query
             if filters:
-                print(f"Combining base query with {len(filters)} filters")
                 query = And([base_query] + filters)
-            else:
-                print("No filters applied, using base query only")
 
             start = (params.page - 1) * params.page_size
             search_kwargs = {
                 'limit': start + params.page_size,
             }
             if params.sort_by:
-                print(f"Sorting by '{params.sort_by}' (reverse: {params.sort_reverse})")
                 search_kwargs['sortedby'] = params.sort_by
                 search_kwargs['reverse'] = params.sort_reverse
 

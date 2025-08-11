@@ -293,7 +293,7 @@ DEMO MODE ENABLED: You are currently running in a test mode where you should pri
                   conversation_history: List[Dict[str, str]],
                   user_id: int | None = None,
                   state_callback: StateCallback = None) -> Dict[str, Any]:
-        
+        print("AI chat for message: " + message + " for user: " + str(user_id))
         user_summaries = []
         def stream_trace(msg: str):
             timestamp = time.strftime("%H:%M:%S", time.localtime())
@@ -408,6 +408,7 @@ DEMO MODE ENABLED: You are currently running in a test mode where you should pri
         else:
             final_content = "I'm sorry, I couldn't find any wines that match your request. Please try again with different criteria."
          
+        print("AI chat for message: " + message + " for user: " + str(user_id) + " returning: " + str(len(recommended_wines)))
         return {
             "response": final_content,
             "recommended_wines": recommended_wines,
@@ -415,13 +416,12 @@ DEMO MODE ENABLED: You are currently running in a test mode where you should pri
         }
 
     def _fallback_chat(self, message: str, user_id: int | None, state_callback: StateCallback = None) -> Dict[str, Any]:
+        print("Fallback chat for message: " + message + " for user: " + str(user_id))
         def stream_trace(msg: str):
+            timestamp = time.strftime("%H:%M:%S", time.localtime())
             if self.sandbox and state_callback:
-                state_callback("trace", msg)
-        
-        def stream_user_summary(summary: str):
-            if state_callback:
-                state_callback("user", summary)
+                state_callback("trace", f"[{timestamp}] {msg}")
+            print(f"[{timestamp}] {msg}")
         
         stream_trace("Using fallback mode - LLM service unavailable")
         count = 5
@@ -449,6 +449,7 @@ DEMO MODE ENABLED: You are currently running in a test mode where you should pri
         else:
             response = "I'd be happy to help you find the perfect wine! Please tell me what you're looking for - wine style, price range, occasion, or regions you enjoy.\n\n*Note: I'm currently running in simplified mode. For more detailed wine advice and sommelier insights, please configure the OpenAI integration.*"
         
+        print("Fallback chat for message: " + message + " for user: " + str(user_id) + " returning: " + str(len(recommended_wines)))
         return {
             "response": response,
             "recommended_wines": recommended_wines[:10],
@@ -461,6 +462,9 @@ DEMO MODE ENABLED: You are currently running in a test mode where you should pri
              conversation_history: List[Dict[str, str]],
              user_id: int | None = None,
              state_callback: StateCallback = None) -> Dict[str, Any]:
+        if self.sandbox:
+            print("Running in sandbox: " + self.sandbox)
+
         if not self.client:
             return self._fallback_chat(message, user_id, state_callback)
         else:

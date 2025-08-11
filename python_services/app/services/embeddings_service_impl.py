@@ -49,9 +49,10 @@ class EmbeddingsServiceImpl:
         self.QUERY_THRESHOLD = 5
         self.FAILURE_DURATION = 5
 
-    def _check_failure_condition(self, query: str) -> bool:
+    def _check_failure_condition(self, query: str):
         current_time = time.time()
         if current_time < self.failure_until:
+            print("Embeddings service failure condition continued")
             raise HTTPException(
                 400, "Service temporarily unavailable due to high query volume"
             )
@@ -66,11 +67,15 @@ class EmbeddingsServiceImpl:
 
         if unique_queries > self.QUERY_THRESHOLD:
             self.failure_until = current_time + self.FAILURE_DURATION
+            print("Embeddings service failure condition met, failure_until: " + str(self.failure_until))
             raise HTTPException(
                 400, "Service temporarily unavailable due to high query volume"
             )
+        else:
+            print("Embeddings service failure condition not met")
 
     def catalog_search(self, params: EmbeddingsSearchRequest) -> List[int]:
+        print("Embeddings search for query: " + params.query)
         q = {}
         q["n_results"] = params.limit
         q["query_texts"] = [params.query]
@@ -80,4 +85,5 @@ class EmbeddingsServiceImpl:
 
         if self.embeddings_demo_failure:
             self._check_failure_condition(params.query)
+        print("Embeddings search for query: " + params.query + " returning: " + str(len(all_ids)))
         return all_ids

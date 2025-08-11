@@ -8,7 +8,7 @@ class ServiceSettings(BaseSettings):
     persist_service: str = "http://localhost:8004"
     use_junction: bool = False
     data_path: str = "python_services/data/gen"
-    sandbox: bool = False
+    sandbox: str = ""
     search_demo_latency: bool = False
     embeddings_demo_failure: bool = False
     sommelier_demo_expensive: bool = False

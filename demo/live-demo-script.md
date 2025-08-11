@@ -90,7 +90,7 @@ EOF
 
 Show we can now repro it, how for customer 1 "a nice cheap red" returns a different list than for customer 2.
 
-=== 2.2 Deploy the sandbox ===
+### 2.2 Deploy the sandbox
 
 ```bash
 kubectl apply --namespace wineinfo -f - << 'EOF'
@@ -159,7 +159,7 @@ EOF
 
 Show that in comes up in the Junction UI.
 
-=== 2.3 Create the route ===
+### 2.3 Create the route
 
 Go to the Junction UI, and create this route:
 
@@ -171,7 +171,7 @@ Go to the Junction UI, and create this route:
         "id": "wineinfo-sommelier",
         "tags": {},
         "hostnames": [
-          "wineinfo-sommelier.default.svc.cluster.local"
+          "wineinfo-sommelier.wineinfo.svc.cluster.local"
         ],
         "ports": [ 80 ],
         "rules": [
@@ -191,7 +191,7 @@ Go to the Junction UI, and create this route:
               {
                 "type": "kube",
                 "name": "wineinfo-sommelier-sandbox-1",
-                "namespace": "default",
+                "namespace": "wineinfo",
                 "port": 80,
                 "weight": 1
               }
@@ -202,7 +202,7 @@ Go to the Junction UI, and create this route:
               {
                 "type": "kube",
                 "name": "wineinfo-sommelier",
-                "namespace": "default",
+                "namespace": "wineinfo",
                 "port": 80,
                 "weight": 1
               }
@@ -217,7 +217,7 @@ Show how it looks visually.
 
 Now, show that the sandbox is running only for customer 2.
 
-=== 2.4 Deploy the fix ===
+### 2.4 Deploy the fix
 
 Ideally this is where we edit live. For now just deploy with env var fixed.
 
@@ -278,7 +278,7 @@ Features:
 ### 3.1 Simulate latency spikes in search 
 
 ```bash
-kubectl apply -f demo/deploy/03_retries.yaml
+kubectl apply --namespace wineinfo -f demo/deploy/03_retries.yaml
 ```
 Show latency issues in WineInfo UI
 
@@ -293,7 +293,7 @@ Create route in Junction UI with timeouts and automatic retries (show that we co
         "id": "wineinfo-search",
         "tags": {},
         "hostnames": [
-          "wineinfo-search.default.svc.cluster.local"
+          "wineinfo-search.wineinfo.svc.cluster.local"
         ],
         "ports": [],
         "rules": [
@@ -302,7 +302,7 @@ Create route in Junction UI with timeouts and automatic retries (show that we co
               {
                 "path": {
                   "type": "Exact",
-                  "value": "/search/"
+                  "value": "/catalog_search/"
                 }
               }
             ],
@@ -317,7 +317,7 @@ Create route in Junction UI with timeouts and automatic retries (show that we co
               {
                 "type": "kube",
                 "name": "wineinfo-search",
-                "namespace": "default",
+                "namespace": "wineinfo",
                 "port": 80,
                 "weight": 1
               }
@@ -328,7 +328,7 @@ Create route in Junction UI with timeouts and automatic retries (show that we co
               {
                 "type": "kube",
                 "name": "wineinfo-search",
-                "namespace": "default",
+                "namespace": "wineinfo",
                 "port": 80,
                 "weight": 1
               }
@@ -378,7 +378,7 @@ Test fix by running a bunch of searches and seeing latency is decreased
 ### 4.1 Simulate semantic search service load failure: 
 
 ```bash
-kubectl apply -f demo/deploy/04_ring_hash.yaml
+kubectl apply --namespace wineinfo -f demo/deploy/04_ring_hash.yaml
 ```
   
 Show the failures by making repeated request semantic search with distinct queries (5 reqs in two seconds or more)
@@ -386,10 +386,10 @@ Show the failures by making repeated request semantic search with distinct queri
 Also show failures with the Load Testing widget by logging in as admin user
 
 
-### 4.2 Upscale recommendation service: 
+### 4.2 Upscale embeddings service: 
 
 ```bash
-kubectl scale --replicas=4 deployment/wineinfo-embeddings
+kubectl scale --namespace wineinfo --replicas=4 deployment/wineinfo-embeddings
 ```
 
 Show problem has gotten better, but still exists using Load Testing functionality in recommendations UI in Wineinfo
@@ -403,7 +403,7 @@ Show problem has gotten better, but still exists using Load Testing functionalit
         "id": {
           "type": "kube",
           "name": "wineinfo-embeddings",
-          "namespace": "default"
+          "namespace": "wineinfo"
         },
         "backends": [
           {

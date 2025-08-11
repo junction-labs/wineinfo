@@ -208,16 +208,11 @@ function WineCard({
 
 
 function LoadTestingSection() {
-	const { data: session } = useSession();
 	const [isRunning, setIsRunning] = useState(false);
 	const [duration, setDuration] = useState(10);
 	const [stats, setStats] = useState<{ [key: number]: number }>({});
 	const [startTime, setStartTime] = useState<number | null>(null);
 	const intervalRefs = useRef<NodeJS.Timeout[]>([]);
-
-	if (!session?.user?.name || session.user.name !== "admin") {
-		return null;
-	}
 
 	const queries = [
 		"red",
@@ -357,6 +352,7 @@ function LoadTestingSection() {
 }
 
 export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
+	const { data: session } = useSession();
 	const [activeTab, setActiveTab] = useState<TabType>("catalog");
 	const [searchTerm, setSearchTerm] = useState("");
 	const [searchType, setSearchType] = useState<'exact' | 'semantic'>('exact');
@@ -596,6 +592,9 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 					</>
 				)}
 			</div>
+
+			{/* Load Testing Section for Admin Users */}
+			{session?.user?.name === "admin" && <LoadTestingSection />}
 		</div>
 	);
 }
