@@ -1,8 +1,28 @@
 # WineInfo Demo Script
 
-Outline:
+## Setup:
+- Run junction control plane in orbstack:
+```bash
+cd ../cloud
+docker build -t junction/transistor:latest -f Dockerfile.transistor .
+docker build -t junction/relay:latest      -f Dockerfile.relay .
+docker build -t junction/db-init:latest    -f Dockerfile.db-init .
+docker build -t junction/init-utils:latest -f Dockerfile.init-utils .
+helm install junction ./junction-chart/ \
+  --namespace junction --create-namespace \
+  --set-file relay.kubeconfig.content=$HOME/.kube/config
+```
 
-1. Multicluster
+- Add "orbstack" cluster in Junction UI http://0.0.0.0:8764/ 
+- Set up wineinfo in orbstack:
+```bash
+./deploy/wineinfo.sh --local --namespace wineinfo
+```
+
+Wineinfo UI should not be visible at http://localhost:30010/
+
+
+## 1. Multicluster
 - spin up a new cluster
 - start up a somellier in it
 - show it
@@ -11,138 +31,149 @@ To work:
 - need a add cluster button so can add creds after the fact
 - need to make relay contactable from kind (maybe it already is??)
 
-2. Routing/traffic splitting
+## 2. Routing/traffic splitting 
 
-- update second cluster to have a new service name
-- put in place route in UI
-- update the second cluster wineinfo to have fix.
-- show it only having an effect for customer 2.
+The problem is, customer 2 complains that the sommelier only reccomends really expensive wine. but we can't repro it with development data/setup. So we move to preprod where we have a copy of all their data
 
+### 2.1 Enable the bug 
 
-3. Client side load balancing 
+```bash
+kubectl apply --namespace wineinfo -f - << 'EOF'
 
-- as below
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-sommelier
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: sommelier
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: sommelier
+    spec:
+      containers:
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/sommelier_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "80",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
+                  optional: true
+          env:
+          - name: SOMMELIER_DEMO_EXPENSIVE
+            value: "true"
+EOF
+```
 
-4. Argo
+Show we can now repro it, how for customer 1 "a nice cheap red" returns a different list than for customer 2.
 
-To work:
-- need to emit route, and watch it
+=== 2.2 Deploy the sandbox ===
 
+```bash
+kubectl apply --namespace wineinfo -f - << 'EOF'
 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-sommelier-sandbox-1
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: sommelier-sandbox-1
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: sommelier-sandbox-1
+    spec:
+      containers:
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/sommelier_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "80",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
+                  optional: true
+          env:
+          - name: SANDBOX
+            value: "sandbox-1"        
+          - name: SOMMELIER_DEMO_EXPENSIVE
+            value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wineinfo-sommelier-sandbox-1
+spec:
+  type: ClusterIP
+  selector:
+    app: wineinfo
+    service: sommelier-sandbox-1
+  ports:
+    - port: 80
+EOF
+```
 
+Show that in comes up in the Junction UI.
 
+=== 2.3 Create the route ===
 
+Go to the Junction UI, and create this route:
 
-
-Features:
-
-* Testing in production
-* Feature flagging @ network level
-
-Steps:
-
-1. Deploy WineInfo: `kubectl apply -f deploy/wineinfo.yaml`
-2. Deploy bugged catalog service with bug via kubectl
-   > For demo purposes this just sets the `CATALOG_DEMO_MOJIBAKE` env var to `true` for wineinfo-catalog deployment
-   <details>
-      <summary>New catalog deployment yaml</summary>
-      
-      > This can be deployed by piping it to `kubectl apply -f -` with `echo`: `echo '<YAML>' | kubectl apply -f -`.
-   
-      ```yml
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: wineinfo-catalog
-        labels:
-          app: wineinfo
-      spec:
-        replicas: 1
-        selector:
-          matchLabels:
-            app: wineinfo
-            service: catalog
-        template:
-          metadata:
-            labels:
-              app: wineinfo
-              service: catalog
-          spec:
-            containers:
-            - name: main
-              image: wineinfo-python:latest
-              imagePullPolicy: IfNotPresent
-              command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "80"]
-              envFrom:
-              - configMapRef:
-                  name: wineinfo-config
-              env:
-              - name: CATALOG_DEMO_MOJIBAKE
-                value: "true"
-      ```
-   </details>
-   
-3. Show encoding bug in WineInfo UI
-4. Deploy new catalog service with bug fix via kubectl
-   <details>
-      <summary>Catalog next deployment yaml</summary>
-      
-      > This can be deployed by piping it to `kubectl apply -f -` with `echo`: `echo '<YAML>' | kubectl apply -f -`.
-      
-      ```yml
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: wineinfo-catalog-next
-        labels:
-          app: wineinfo
-      spec:
-        replicas: 1
-        selector:
-          matchLabels:
-            app: wineinfo
-            service: catalog-next
-        template:
-          metadata:
-            labels:
-              app: wineinfo
-              service: catalog-next
-          spec:
-            containers:
-            - name: main
-              image: wineinfo-python:latest
-              imagePullPolicy: IfNotPresent
-              command: ["fastapi", "run", "/app/catalog_app.py", "--host", "0.0.0.0", "--port", "80"]
-              envFrom:
-              - configMapRef:
-                  name: wineinfo-config
-      ---
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: wineinfo-catalog-next
-      spec:
-        type: ClusterIP
-        selector:
-          app: wineinfo
-          service: catalog-next
-        ports:
-          - port: 80
-      ```
-   </details>
-   
-5. Create route that routes traffic to catalog-next for admin user in Junction UI
    <details>
       <summary>Route JSON</summary>
       
       ```json
       {
-        "id": "wineinfo-catalog",
+        "id": "wineinfo-sommelier",
         "tags": {},
         "hostnames": [
-          "wineinfo-catalog.default.svc.cluster.local"
+          "wineinfo-sommelier.default.svc.cluster.local"
         ],
-        "ports": [],
+        "ports": [ 80 ],
         "rules": [
           {
             "matches": [
@@ -151,7 +182,7 @@ Steps:
                   {
                     "type": "RegularExpression",
                     "name": "baggage",
-                    "value": ".*username=admin(,|$).*"
+                    "value": ".*user-id=2(,|$).*"
                   }
                 ]
               }
@@ -159,7 +190,7 @@ Steps:
             "backends": [
               {
                 "type": "kube",
-                "name": "wineinfo-catalog-next",
+                "name": "wineinfo-sommelier-sandbox-1",
                 "namespace": "default",
                 "port": 80,
                 "weight": 1
@@ -170,7 +201,7 @@ Steps:
             "backends": [
               {
                 "type": "kube",
-                "name": "wineinfo-catalog",
+                "name": "wineinfo-sommelier",
                 "namespace": "default",
                 "port": 80,
                 "weight": 1
@@ -181,21 +212,79 @@ Steps:
       }
       ```
    </details>
-6. Test fix in production by logging in as admin user
 
-## Advanced routing functionality
+Show how it looks visually.
+
+Now, show that the sandbox is running only for customer 2.
+
+=== 2.4 Deploy the fix ===
+
+Ideally this is where we edit live. For now just deploy with env var fixed.
+
+```bash
+kubectl apply --namespace wineinfo -f - << 'EOF'
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-sommelier-sandbox-1
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: sommelier-sandbox-1
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: sommelier-sandbox-1
+    spec:
+      containers:
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/sommelier_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "80",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
+                  optional: true
+EOF
+```
+
+## 3. Advanced routing functionality
 
 Features:
-
 * Timeouts
 * Retries
 
-Steps:
+### 3.1 Simulate latency spikes in search 
 
-7. Simulate latency spikes in search: `kubectl apply -f demo/deploy/03_retries.yaml` 
-   > For demo purposes this just sets the `SEARCH_DEMO_LATENCY` env var to `true` for wineinfo-search deployment
-8. Show latency issues in WineInfo UI
-9. Create route in Junction UI with timeouts and automatic retries (show that we could also make the default route have timeouts and automatic retries, instead of using a path match)
+```bash
+kubectl apply -f demo/deploy/03_retries.yaml
+```
+Show latency issues in WineInfo UI
+
+### 3.2 Create a Route
+
+Create route in Junction UI with timeouts and automatic retries (show that we could also make the default route have timeouts and automatic retries, instead of using a path match)
    <details>
       <summary>Route JSON</summary>
       
@@ -281,23 +370,31 @@ Steps:
       }
       ```
    </details>
-11. Test fix by running a bunch of searches and seeing latency is decreased
 
-## Load Balancing
+Test fix by running a bunch of searches and seeing latency is decreased
 
-Features:
+## 4 Load Balancing
 
-* Client-side load balancing
+### 4.1 Simulate semantic search service load failure: 
 
-Steps:
+```bash
+kubectl apply -f demo/deploy/04_ring_hash.yaml
+```
+  
+Show the failures by making repeated request semantic search with distinct queries (5 reqs in two seconds or more)
 
-11. Simulate Recommendations service load failure: `kubectl apply -f demo/deploy/04_ring_hash.yaml` 
-    > For demo purposes this just sets the `RECS_DEMO_FAILURE` env var to `true` for the wineinfo-embeddings deployment
-12. Show the failures by making repeated request to the recommendation server with distinct queries (5 reqs in two seconds or more)
-    1. Also show failures with the Load Testing widget in recommendations tab by logging in as admin user
-14. Upscale recommendation service: `kubectl scale --replicas=4 deployment/wineinfo-embeddings`
-15. Show problem has gotten better, but still exists using Load Testing functionality in recommendations UI in Wineinfo
-16. Add a load balancing policy to the wineinfo-embeddings service via the Junction UI
+Also show failures with the Load Testing widget by logging in as admin user
+
+
+### 4.2 Upscale recommendation service: 
+
+```bash
+kubectl scale --replicas=4 deployment/wineinfo-embeddings
+```
+
+Show problem has gotten better, but still exists using Load Testing functionality in recommendations UI in Wineinfo
+
+### 4.3 Add a load balancing policy to the wineinfo-embeddings service via the Junction UI
     <details>
       <summary>Service JSON</summary>
          
@@ -326,7 +423,8 @@ Steps:
       }
       ```
     </details>
-17. Run a load test in the recommendations UI in Wineinfo again to show ring hash is working
+
+Run a load test in the recommendations UI in Wineinfo again to show ring hash is working
 
 ## Wrap up
 
