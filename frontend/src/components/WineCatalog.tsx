@@ -79,7 +79,7 @@ function SearchInput({
 				{loading ? (
 					<div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
 				) : (
-						"Search"
+					"Search"
 				)}
 			</Button>
 		</div>
@@ -593,8 +593,7 @@ export default function WineCatalog({ isLoggedIn }: WineCatalogProps) {
 				)}
 			</div>
 
-			{/* Load Testing Section for Admin Users */}
-			{session?.user?.name === "admin" && <LoadTestingSection />}
+			{session?.user?.name === "admin" && activeTab === 'catalog' && <LoadTestingSection />}
 		</div>
 	);
 }

@@ -24,7 +24,7 @@ Wineinfo UI should not be visible at http://localhost:30010/
 
 ## 1. Multicluster
 - spin up a new cluster
-- start up a somellier in it
+- start up a sommelier in it rather than above
 - show it
 
 To work:
@@ -33,7 +33,7 @@ To work:
 
 ## 2. Routing/traffic splitting 
 
-The problem is, customer 2 complains that the sommelier only reccomends really expensive wine. but we can't repro it with development data/setup. So we move to preprod where we have a copy of all their data
+The problem is, customer 2 complains that the sommelier only recommends really expensive wine. but we can't repro it with development data/setup. So we move to preprod where we have a copy of all their data
 
 ### 2.1 Enable the bug 
 
