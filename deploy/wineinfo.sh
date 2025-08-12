@@ -9,6 +9,7 @@ set -euo pipefail
 # Parse command line arguments
 LOCAL_MODE=false
 NAMESPACE="default"
+NEXTAUTH_URL=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -20,13 +21,19 @@ while [[ $# -gt 0 ]]; do
             NAMESPACE="$2"
             shift 2
             ;;
+        --nextauth-url)
+            NEXTAUTH_URL="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--local] [--namespace NAMESPACE]"
+            echo "Usage: $0 [--local] [--namespace NAMESPACE] [--nextauth-url URL]"
             exit 1
             ;;
     esac
 done
+
+
 
 python_services_docker() {
     docker build \
@@ -93,6 +100,11 @@ main() {
     kubectl delete -f ./deploy/wineinfo.yaml -n "${NAMESPACE}" || true
     create_openai_secret
     kubectl apply -f ./deploy/wineinfo.yaml -n "${NAMESPACE}"
+    
+    if [ -n "${NEXTAUTH_URL:-}" ]; then
+        kubectl patch configmap wineinfo-config -n "${NAMESPACE}" --type='merge' -p="{\"data\":{\"NEXTAUTH_URL\":\"${NEXTAUTH_URL}\"}}"
+        kubectl rollout restart deployment/wineinfo-frontend -n "${NAMESPACE}"
+    fi
 }
 
 set -x

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wineinfo-sommelier
+  labels:
+    app: wineinfo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wineinfo
+      service: sommelier
+  template:
+    metadata:
+      labels:
+        app: wineinfo
+        service: sommelier
+    spec:
+      containers:
+        - name: main
+          image: wineinfo-python:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            [
+              "fastapi",
+              "run",
+              "/app/sommelier_app.py",
+              "--host",
+              "0.0.0.0",
+              "--port",
+              "80",
+            ]
+          envFrom:
+            - configMapRef:
+                name: wineinfo-config
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
+                  optional: true
+          env:
+          - name: SOMMELIER_DEMO_EXPENSIVE
+            value: "true"

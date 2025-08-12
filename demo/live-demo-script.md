@@ -12,11 +12,10 @@ helm install junction ./junction-chart/ \
   --namespace junction --create-namespace \
   --set-file relay.kubeconfig.content=$HOME/.kube/config
 ```
-
 - Add "orbstack" cluster in Junction UI http://0.0.0.0:8764/ 
 - Set up wineinfo in orbstack:
 ```bash
-./deploy/wineinfo.sh --local --namespace wineinfo
+./deploy/wineinfo.sh --local --namespace wineinfo --nextauth-url "http://localhost:30010/"
 ```
 
 Wineinfo UI should not be visible at http://localhost:30010/
@@ -38,54 +37,7 @@ The problem is, customer 2 complains that the sommelier only recommends really e
 ### 2.1 Enable the bug 
 
 ```bash
-kubectl apply --namespace wineinfo -f - << 'EOF'
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wineinfo-sommelier
-  labels:
-    app: wineinfo
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: wineinfo
-      service: sommelier
-  template:
-    metadata:
-      labels:
-        app: wineinfo
-        service: sommelier
-    spec:
-      containers:
-        - name: main
-          image: wineinfo-python:latest
-          imagePullPolicy: IfNotPresent
-          command:
-            [
-              "fastapi",
-              "run",
-              "/app/sommelier_app.py",
-              "--host",
-              "0.0.0.0",
-              "--port",
-              "80",
-            ]
-          envFrom:
-            - configMapRef:
-                name: wineinfo-config
-          env:
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openai-api-key
-                  key: OPENAI_API_KEY
-                  optional: true
-          env:
-          - name: SOMMELIER_DEMO_EXPENSIVE
-            value: "true"
-EOF
+kubectl apply --namespace wineinfo -f demo/deploy/02_routing_enable.yaml
 ```
 
 Show we can now repro it, how for customer 1 "a nice cheap red" returns a different list than for customer 2.
@@ -93,68 +45,7 @@ Show we can now repro it, how for customer 1 "a nice cheap red" returns a differ
 ### 2.2 Deploy the sandbox
 
 ```bash
-kubectl apply --namespace wineinfo -f - << 'EOF'
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wineinfo-sommelier-sandbox-1
-  labels:
-    app: wineinfo
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: wineinfo
-      service: sommelier-sandbox-1
-  template:
-    metadata:
-      labels:
-        app: wineinfo
-        service: sommelier-sandbox-1
-    spec:
-      containers:
-        - name: main
-          image: wineinfo-python:latest
-          imagePullPolicy: IfNotPresent
-          command:
-            [
-              "fastapi",
-              "run",
-              "/app/sommelier_app.py",
-              "--host",
-              "0.0.0.0",
-              "--port",
-              "80",
-            ]
-          envFrom:
-            - configMapRef:
-                name: wineinfo-config
-          env:
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openai-api-key
-                  key: OPENAI_API_KEY
-                  optional: true
-          env:
-          - name: SANDBOX
-            value: "sandbox-1"        
-          - name: SOMMELIER_DEMO_EXPENSIVE
-            value: "true"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: wineinfo-sommelier-sandbox-1
-spec:
-  type: ClusterIP
-  selector:
-    app: wineinfo
-    service: sommelier-sandbox-1
-  ports:
-    - port: 80
-EOF
+kubectl apply --namespace wineinfo -f demo/deploy/02_routing_sandbox.yaml
 ```
 
 Show that in comes up in the Junction UI.
@@ -217,57 +108,25 @@ Show how it looks visually.
 
 Now, show that the sandbox is running only for customer 2.
 
-### 2.4 Deploy the fix
-
-Ideally this is where we edit live. For now just deploy with env var fixed.
-
+### 2.4 Make the fix
+Run this once: 
 ```bash
-kubectl apply --namespace wineinfo -f - << 'EOF'
-
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: wineinfo-sommelier-sandbox-1
-  labels:
-    app: wineinfo
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: wineinfo
-      service: sommelier-sandbox-1
-  template:
-    metadata:
-      labels:
-        app: wineinfo
-        service: sommelier-sandbox-1
-    spec:
-      containers:
-        - name: main
-          image: wineinfo-python:latest
-          imagePullPolicy: IfNotPresent
-          command:
-            [
-              "fastapi",
-              "run",
-              "/app/sommelier_app.py",
-              "--host",
-              "0.0.0.0",
-              "--port",
-              "80",
-            ]
-          envFrom:
-            - configMapRef:
-                name: wineinfo-config
-          env:
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: openai-api-key
-                  key: OPENAI_API_KEY
-                  optional: true
-EOF
+brew install fswatch
 ```
+
+Then this: 
+```bash
+fswatch -o python_services/app | while read f; do
+    docker build \
+        --tag wineinfo-python:latest \
+        --file python_services/Dockerfile python_services/ && \
+    kubectl rollout --namespace wineinfo restart deployment/wineinfo-sommelier-sandbox-1
+done
+```
+
+Then go into your IDE in sommelier_service_impl. Show the problematic code in _fallback_chat(). 
+Delete it and save. Show customer 2 now works. Now make a typo and save and show the error. 
+Then flip to customer 1 and show they are unaffected,
 
 ## 3. Advanced routing functionality
 

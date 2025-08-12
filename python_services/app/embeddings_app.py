@@ -7,8 +7,6 @@ from .services.embeddings_service_impl import EmbeddingsServiceImpl
 
 settings = ServiceSettings()
 impl = EmbeddingsServiceImpl(ServiceSettings(), False)
-# the LLM may not be downloaded until we do this, so do it now
-impl.catalog_search(EmbeddingsSearchRequest(query="dummy", limit=1))
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
 

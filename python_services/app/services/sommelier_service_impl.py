@@ -423,13 +423,14 @@ DEMO MODE ENABLED: You are currently running in a test mode where you should pri
                 state_callback("trace", f"[{timestamp}] {msg}")
             print(f"[{timestamp}] {msg}")
         
+        enable_expensive_bias = self.enable_expensive_bias and user_id == 2
         stream_trace("Using fallback mode - LLM service unavailable")
         count = 5
-        if self.enable_expensive_bias and user_id == 2:
+        if enable_expensive_bias:
             count = 100
         recommended_wines = self._semantic_search(message, count)
-        if self.enable_expensive_bias and user_id == 2:
-            stream_trace("User has an expensive bias so recommending expensive wines")
+        if enable_expensive_bias:
+            stream_trace("User has a expensive tastes so recommending expensive wines")
             recommended_wines.sort(key=lambda x: float(x.price) if x.price and x.price.strip() else 0.0, reverse=True)
             recommended_wines = recommended_wines[:5]
   

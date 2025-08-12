@@ -5,9 +5,10 @@ WORKDIR /app
 COPY requirements.txt requirements.txt
 RUN pip install --upgrade uv
 RUN uv pip install --system -r requirements.txt
-COPY ./app .
-COPY ./data ./data
-# fetch the llm from huggingface
-COPY ./bin .
-RUN python fetch_embeddings_llm.py
 
+# Pre-download the embedding model (this is the 70-second operation)
+COPY ./bin ./bin
+RUN python bin/pre_download_embeddings.py
+
+COPY ./data ./data
+COPY ./app .
