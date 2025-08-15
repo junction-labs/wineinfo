@@ -15,7 +15,7 @@ helm install junction ./junction-chart/ \
 - Add "orbstack" cluster in Junction UI http://0.0.0.0:8764/ 
 - Set up wineinfo in orbstack:
 ```bash
-./deploy/wineinfo.sh --local --namespace wineinfo --nextauth-url "http://localhost:30010/"
+./deploy/wineinfo.sh --local  --nextauth-url "http://localhost:30010/"
 ```
 
 Wineinfo UI should not be visible at http://localhost:30010/

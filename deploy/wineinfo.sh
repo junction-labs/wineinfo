@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Parse command line arguments
 LOCAL_MODE=false
-NAMESPACE="default"
+NAMESPACE="wineinfo"
 NEXTAUTH_URL=""
 
 while [[ $# -gt 0 ]]; do
@@ -34,7 +34,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-
 python_services_docker() {
     docker build \
         --tag wineinfo-python:latest \
@@ -49,7 +48,6 @@ frontend_docker() {
 
 import_images() {
     local cluster=$1;
-
     k3d image import -c "${cluster}" wineinfo-python:latest
     k3d image import -c "${cluster}" wineinfo-frontend:latest
 }
@@ -59,7 +57,7 @@ k3d_cluster() {
     if k3d cluster list | grep -q "${cluster_name}"; then
         echo "cluster ${cluster_name} exists"
     else
-        k3d cluster create "$cluster_name" -p "8010-8011:30010-30011@loadbalancer" --image rancher/k3s:latest
+        k3d cluster create "$cluster_name" --network host --image rancher/k3s:latest
     fi
 }
 

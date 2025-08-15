@@ -246,7 +246,7 @@ An easy way to interact with Junction is to open a Python REPL on a running
 Python service:
 
 ```bash
-kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=persist) -- python
+kubectl exec --namespace wineinfo -ti $(kubectl get po --namespace wineinfo -o=name -l app=wineinfo,service=persist) -- python
 ```
 
 Try looking at the Routes that exist for the catalog or search service:
