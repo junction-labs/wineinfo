@@ -1,4 +1,4 @@
-import { Wine, PaginatedList, SearchRequest, EmbeddingsSearchRequest, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
+import { Wine, PaginatedList, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
 import { HttpClient, HttpClientOptions } from '@/lib/server/httpClient';
 import { settings } from '@/lib/server/config';
 
@@ -27,23 +27,21 @@ export class SearchService {
     constructor(private client: HttpClient) {
     }
 
-    async catalog_search(
-        request: SearchRequest,
-        options: HttpClientOptions
-    ): Promise<PaginatedList<number>> {
-        return this.client.post('/catalog_search/', request, options);
-    }
-}
-
-export class EmbeddingsService {
-    constructor(private client: HttpClient) {
-    }
-
-    async catalog_search(
-        request: EmbeddingsSearchRequest,
+    async search(
+        request: {
+            query?: string;
+            mode?: 'text' | 'semantic' | 'hybrid';
+            scope?: 'cellar' | 'catalog' | 'all';
+            user_id?: number;
+            filters?: Record<string, any>;
+            numeric_ranges?: Record<string, any>;
+            sort_by?: string;
+            sort_reverse?: boolean;
+            limit?: number;
+        },
         options: HttpClientOptions
     ): Promise<number[]> {
-        return this.client.get('/catalog_search/', request, options);
+        return this.client.get('/search/', request, options);
     }
 }
 
@@ -88,6 +86,5 @@ export class PersistService {
 }
 
 export const searchService = new SearchService(new HttpClient(settings.searchService, settings.useJunction));
-export const embeddingsService = new EmbeddingsService(new HttpClient(settings.embeddingsService, settings.useJunction));
 export const sommelierService = new SommelierService(new HttpClient(settings.sommelierService, settings.useJunction));
 export const persistService = new PersistService(new HttpClient(settings.persistService, settings.useJunction));

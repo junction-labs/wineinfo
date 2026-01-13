@@ -66,7 +66,7 @@ function SearchInput({
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="exact">🔍 Exact</SelectItem>
+						<SelectItem value="exact">🔍 Keyword</SelectItem>
 						<SelectItem value="semantic">🧠 Semantic</SelectItem>
 					</SelectContent>
 				</Select>

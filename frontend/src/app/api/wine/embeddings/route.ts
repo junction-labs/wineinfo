@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { embeddingsService, persistService } from '@/lib/server/services';
+import { searchService, persistService } from '@/lib/server/services';
 import { sessionOptions } from '@/lib/server/httpClient';
 
 export async function GET(request: NextRequest) {
@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
         }
 
         const options = sessionOptions(request.headers, session);
-        const wineIds = await embeddingsService.catalog_search(
-            { query, limit: 10 },
+        const wineIds = await searchService.search(
+            { query, mode: 'hybrid', limit: 10 },
             options
         );
 

@@ -8,8 +8,7 @@ sys.path.append(
 )
 from python_services.app.common.config import ServiceSettings
 from python_services.app.common.api import Wine
-from python_services.app.services.embeddings_service_impl import EmbeddingsServiceImpl
-from python_services.app.services.search_service_impl import SearchServiceImpl
+from python_services.app.services.catalog_service_impl import CatalogServiceImpl
 from python_services.app.services.persist_service_impl import PersistServiceImpl
 import csv
 import argparse
@@ -34,10 +33,8 @@ if __name__ == "__main__":
         os.mkdir(service_settings.data_path)
 
     persist_service = PersistServiceImpl(service_settings, True)
-    embeddings_service = EmbeddingsServiceImpl(service_settings, True)
-    search_service = SearchServiceImpl(service_settings, True)
-    search_service.open_index()
-    embeddings_service.open_index()
+    catalog_service = CatalogServiceImpl(service_settings, True)
+    catalog_service.open_index()
     
     # give a couple of customers a decent cellar
     all_wine_ids = []
@@ -53,14 +50,12 @@ if __name__ == "__main__":
             wine = Wine.model_validate(row)
             wine = persist_service.add_wine(wine)
             all_wine_ids.append(wine.id)
-            embeddings_service.add_wine(wine)
-            search_service.add_wine(wine)
+            catalog_service.add_wine(wine)
             n = n + 1
             if n == args.lines:
                 break
 
-    search_service.build_index()
-    embeddings_service.build_index()
+    catalog_service.build_index()
     customer1_wines = random.sample(all_wine_ids, min(100, len(all_wine_ids)))
     customer2_wines = random.sample(all_wine_ids, min(100, len(all_wine_ids)))
     

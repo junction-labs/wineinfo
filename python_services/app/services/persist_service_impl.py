@@ -9,51 +9,58 @@ from fastapi import HTTPException
 
 class PersistServiceImpl:
     def __init__(self, settings: ServiceSettings, reset: bool = False):
-        self.db_path = os.path.join(settings.data_path, "persist_data.db")
+        # Ensure data directory exists
+        abs_data_path = os.path.abspath(settings.data_path)
+        os.makedirs(abs_data_path, exist_ok=True)
+        print(f"Created data directory: {abs_data_path}")
+
+        self.db_path = os.path.join(abs_data_path, "persist_data.db")
+        print(f"Database path: {self.db_path}")
+
         if reset:
             self._init_database()
+            print(f"Initialized database at: {self.db_path}")
 
     def _init_database(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("DROP TABLE IF EXISTS cellar")
-        cursor.execute("DROP TABLE IF EXISTS wine")
-        
-        cursor.execute(
-            """
-            CREATE TABLE cellar (
-                id INTEGER PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                wine_id INTEGER NOT NULL
+        with closing(sqlite3.connect(self.db_path)) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("DROP TABLE IF EXISTS cellar")
+            cursor.execute("DROP TABLE IF EXISTS wine")
+
+            cursor.execute(
+                """
+                CREATE TABLE cellar (
+                    id INTEGER PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    wine_id INTEGER NOT NULL
+                )
+                """
             )
-            """
-        )
-        
-        cursor.execute(
-            """
-            CREATE TABLE wine (
-                id INTEGER PRIMARY KEY,
-                title TEXT NOT NULL,
-                country TEXT NOT NULL,
-                description TEXT NOT NULL,
-                designation TEXT NOT NULL,
-                points TEXT NOT NULL,
-                price TEXT NOT NULL,
-                province TEXT NOT NULL,
-                region_1 TEXT NOT NULL,
-                region_2 TEXT NOT NULL,
-                variety TEXT NOT NULL,
-                winery TEXT NOT NULL
+
+            cursor.execute(
+                """
+                CREATE TABLE wine (
+                    id INTEGER PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    country TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    designation TEXT NOT NULL,
+                    points TEXT NOT NULL,
+                    price TEXT NOT NULL,
+                    province TEXT NOT NULL,
+                    region_1 TEXT NOT NULL,
+                    region_2 TEXT NOT NULL,
+                    variety TEXT NOT NULL,
+                    winery TEXT NOT NULL
+                )
+                """
             )
-            """
-        )
-        
-        conn.commit()
-        conn.close()
+
+            conn.commit()
 
     def add_wine(self, wine: Wine) -> Wine:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -69,11 +76,11 @@ class PersistServiceImpl:
     def get_wine(self, ids: List[int]) -> List[Wine]:
         if not ids:
             return []
-            
+
         wines = []
         missing_ids = []
-        
-        with sqlite3.connect(self.db_path) as conn:
+
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
             placeholders = ','.join(['?' for _ in ids])
             cursor.execute(
@@ -112,8 +119,8 @@ class PersistServiceImpl:
     def get_wines_by_user_id(self, user_id: int) -> List[Wine]:
         """Get all wines in a user's cellar by user_id"""
         wines = []
-        
-        with sqlite3.connect(self.db_path) as conn:
+
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
@@ -146,8 +153,8 @@ class PersistServiceImpl:
 
     def get_all_wines_paginated(self, page: int, page_size: int) -> PaginatedList[Wine]:
         offset = (page - 1) * page_size
-        
-        with sqlite3.connect(self.db_path) as conn:
+
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
             
             cursor.execute("SELECT COUNT(*) FROM wine")
@@ -185,7 +192,7 @@ class PersistServiceImpl:
         )
 
     def do_sql(self, params: SQLRequest) -> List[Tuple]:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             with closing(conn.cursor()) as cursor:
                 cursor.execute(params.query, params.params)
                 ret = cursor.fetchall()
@@ -193,7 +200,7 @@ class PersistServiceImpl:
                 return ret
 
     def add_wine_to_cellar(self, user_id: int, wine_id: int) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """

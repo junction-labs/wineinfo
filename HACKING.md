@@ -1,77 +1,52 @@
 # For developers of the demo
 
-## Generating New Vector Data
+## Environment Setup
 
-Generating the data is best done in your local environment, rather than in a
-container. Depending on your CPU or GPU, this may take a while.
+Required environment variables:
 
-In this directory, run
+```bash
+# Required for catalog service (search backend)
+export TURBOPUFFER_API_KEY="your-turbopuffer-api-key"
+# For AI sommelier (Claude-powered wine recommendations)
+export ANTHROPIC_API_KEY="your-anthropic-api-key"
+```
+
+Optional:
+``` bash
+# For embedding provider (defaults to "local")
+export EMBEDDING_PROVIDER="local"  # or "openai"
+# specify model
+export EMBEDDING_MODEL="all-MiniLM-L6-v2"
+# For OpenAI embeddings (only needed if EMBEDDING_PROVIDER="openai")
+export OPENAI_API_KEY="your-openai-api-key"
+```
+
+## Building the Search Index
+
+Index generation uses Turbopuffer and creates both full-text and vector embeddings.
+This is best done in your local environment.
+
+**Note:** The first time you run this with local embeddings, sentence-transformers will
+download the model (~90MB for all-MiniLM-L6-v2). Subsequent runs will use the cached model.
+
+In this directory, run:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade uv
 uv pip install -r python_services/requirements.txt
-python3 python_services/bin/build_data.py
+
+# Index 1000 wines (adjust --lines as needed, 0 = all)
+python3 python_services/bin/build_data.py --lines 1000
 ```
-
-## Querying junction from a running container
-
-```
-kubectl exec -ti $(kubectl get po -o=name -l app=wineinfo,service=persist) -- python
-```
-
-Then typically:
-
-```python
-import junction
-client = junction.default_client()
-```
-
-Then some options:
-
-```python
-client.resolve_http(http://wineinfo-search.default.svc.cluster.local/search/?foo=bar")
-client.dump_routes()
-client.dump_backends()
-```
-
-## Using a locally built ezbake
-
-Build docker image and import it into k3d:
-
-```bash
-cd ../ezbake
-docker build --tag ezbake:local --file ./scripts/Dockerfile-develop
-k3d image import -c junction-wineinfo ezbake:local
-cd ../wineinfo
-```
-
-Then edit deploy/ezbake.yaml
-
-```diff
--          image: ghcr.io/junction-labs/junction-labs/ezbake:latest
-+          image: ezbake:local
-```
-
-Then pick it up with:
-
-```bash
-kubectl delete -f deploy/ezbake.yaml
-kubectl apply -f deploy/ezbake.yaml
-```
-
-## Using a locally built junction-client
-
-FIXME
 
 ## Developing the demo code with hot reload
 
 The easiest way to develop the demo is using the interactive mode of the various
-web servers. run the following in 5 different shells, then, go to
-`http://localhost:3000/`:
+web servers. Run the following in 4 different shells:
 
-Frontend (defaults to port 3000):
+**Frontend** (defaults to port 3000):
 
 ```bash
 cd frontend
@@ -79,30 +54,25 @@ npm install
 npm run dev
 ```
 
-Persist:
+Then go to `http://localhost:3000/`
+
+**Persist Service** (wine storage - port 8001):
 
 ```bash
 source .venv/bin/activate
-fastapi dev python_services/app/persist_app.py --port 8004
+fastapi dev python_services/app/persist_app.py --port 8001
 ```
 
-Embeddings:
+**Catalog Service** (unified search - port 8002):
 
 ```bash
 source .venv/bin/activate
-fastapi dev python_services/app/embeddings_app.py --port 8003
+fastapi dev python_services/app/catalog_app.py --port 8002
 ```
 
-Search:
+**Sommelier Service** (AI recommendations - port 8003):
 
 ```bash
 source .venv/bin/activate
-fastapi dev python_services/app/search_app.py --port 8002
-```
-
-Sommelier:
-
-```bash
-source .venv/bin/activate
-fastapi dev python_services/app/sommelier_app.py --port 8001
+  fastapi dev python_services/app/sommelier_app.py --port 8003
 ```

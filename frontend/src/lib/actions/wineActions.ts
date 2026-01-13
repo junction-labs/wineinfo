@@ -1,7 +1,7 @@
 'use server';
 
 import { Wine, PaginatedList, SearchRequest, SommelierChatRequest, SommelierChatResponse } from '@/lib/api_types';
-import { searchService, embeddingsService, sommelierService, persistService } from '@/lib/server/services';
+import { searchService, sommelierService, persistService } from '@/lib/server/services';
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth";
 import { headers } from 'next/headers';
@@ -60,22 +60,37 @@ export async function searchWines(params: SearchRequest): Promise<PaginatedList<
     const session = await getServerSession(authOptions);
     const options = sessionOptions(await headers(), session);
 
-    const { query, page, page_size } = params;
+    const { query, page, page_size, filters, numeric_ranges, sort_by, sort_reverse } = params;
     if (!query.trim()) {
         return await persistService.getAllWinesPaginated(page, page_size, options);
     }
 
-    const results = await searchService.catalog_search(params, options);
-    const wines = results.items.length > 0
-        ? await persistService.getWine(results.items, options)
+    // Use text search (BM25) for exact matching
+    const wineIds = await searchService.search({
+        query,
+        mode: 'text',
+        filters,
+        numeric_ranges,
+        sort_by,
+        sort_reverse,
+        limit: page_size * 2 // Get more results to handle pagination
+    }, options);
+
+    // Handle pagination manually
+    const start = (page - 1) * page_size;
+    const end = start + page_size;
+    const paginatedIds = wineIds.slice(start, end);
+
+    const wines = paginatedIds.length > 0
+        ? await persistService.getWine(paginatedIds, options)
         : [];
 
     return {
         items: wines,
-        total: results.total,
-        page: results.page,
-        page_size: results.page_size,
-        total_pages: results.total_pages
+        total: wineIds.length,
+        page: page,
+        page_size: page_size,
+        total_pages: Math.ceil(wineIds.length / page_size)
     };
 }
 
@@ -88,8 +103,10 @@ export async function searchWinesSemantic(params: { query: string; page: number;
         return await persistService.getAllWinesPaginated(page, page_size, options);
     }
 
-    const wineIds = await embeddingsService.catalog_search({
+    // Use vector search for semantic matching
+    const wineIds = await searchService.search({
         query,
+        mode: 'semantic',
         limit: page_size * 2 // Get more results to handle pagination
     }, options);
 

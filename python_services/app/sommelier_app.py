@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from .common.http_client import HttpClient
 from .common.config import ServiceSettings
-from .common.api_stubs import PersistService, EmbeddingsService, SearchService
+from .common.api_stubs import PersistService
 from .common.baggage import create_baggage_middleware, baggage_mgr
-from .services.sommelier_service_impl import SommelierServiceImpl
+from .services.sommelier_service_impl import SommelierServiceImpl, CatalogService
 from .common.api import SommelierChatRequest
 import json
 import asyncio
@@ -13,20 +13,16 @@ from typing import AsyncGenerator
 import traceback
 
 settings = ServiceSettings()
-search_service = SearchService(
-    HttpClient(settings.search_service, settings.use_junction)
-)
-embeddings_service = EmbeddingsService(
-    HttpClient(settings.embeddings_service, settings.use_junction)
+catalog_service = CatalogService(
+    HttpClient(settings.catalog_service, settings.use_junction)
 )
 persist_service = PersistService(
     HttpClient(settings.persist_service, settings.use_junction)
 )
 impl = SommelierServiceImpl(
     settings,
-    persist_service, 
-    search_service, 
-    embeddings_service)
+    persist_service,
+    catalog_service)
 
 app = FastAPI()
 app.middleware("http")(create_baggage_middleware())
